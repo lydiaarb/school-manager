@@ -1,0 +1,201 @@
+{% extends "admin_dashboard/base_admin.html" %}
+{% block title %}Présence{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+    <div>
+      <h1 class="text-3xl font-bold tracking-tight text-slate-900">Présence</h1>
+      <p class="mt-1 text-base text-slate-500">
+        Gérez les séances de présence, suivez les pointages et consultez les enregistrements.
+      </p>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <p class="text-sm font-medium text-slate-500">Total séances</p>
+      <h2 class="mt-3 text-4xl font-bold text-slate-900">{{ total_sessions }}</h2>
+      <p class="mt-2 text-sm text-slate-500">Toutes les séances de présence</p>
+    </div>
+
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <p class="text-sm font-medium text-slate-500">Séances ouvertes</p>
+      <h2 class="mt-3 text-4xl font-bold text-slate-900">{{ open_sessions }}</h2>
+      <p class="mt-2 text-sm text-slate-500">Sessions encore actives</p>
+    </div>
+
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <p class="text-sm font-medium text-slate-500">Séances clôturées</p>
+      <h2 class="mt-3 text-4xl font-bold text-slate-900">{{ closed_sessions }}</h2>
+      <p class="mt-2 text-sm text-slate-500">Sessions terminées</p>
+    </div>
+
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <p class="text-sm font-medium text-slate-500">Enregistrements</p>
+      <h2 class="mt-3 text-4xl font-bold text-slate-900">{{ total_records }}</h2>
+      <p class="mt-2 text-sm text-slate-500">Présences déjà enregistrées</p>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+    <form method="get" class="grid grid-cols-1 gap-3 xl:grid-cols-12">
+      <div class="xl:col-span-9">
+        <div class="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+          <span class="mr-3 text-lg text-slate-400">🔎</span>
+          <input
+            type="text"
+            name="q"
+            value="{{ request.GET.q }}"
+            placeholder="Rechercher par session ou formation..."
+            class="w-full border-0 bg-transparent p-0 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-0"
+          >
+        </div>
+      </div>
+
+      <div class="xl:col-span-2">
+        <select name="status" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 focus:border-slate-300 focus:outline-none">
+          <option value="">Tous les statuts</option>
+          <option value="open" {% if request.GET.status == "open" %}selected{% endif %}>Ouverte</option>
+          <option value="closed" {% if request.GET.status == "closed" %}selected{% endif %}>Clôturée</option>
+        </select>
+      </div>
+
+      <div class="xl:col-span-1 flex gap-3">
+        <button type="submit"
+                class="flex-1 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">
+          Filtrer
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Table -->
+  <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-slate-200">
+        <thead class="bg-slate-50">
+          <tr>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Séance</th>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Formation</th>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Date</th>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Étudiants</th>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Statut</th>
+            <th class="px-6 py-4 text-right text-sm font-semibold text-slate-700">Actions</th>
+          </tr>
+        </thead>
+
+        <tbody class="divide-y divide-slate-100">
+          {% for s in sessions %}
+          <tr class="transition hover:bg-slate-50/70">
+            <td class="px-6 py-4">
+              <div class="flex items-center gap-3">
+                <div class="flex h-11 w-11 items-center justify-center rounded-full bg-slate-200 text-sm font-bold text-slate-700">
+                  ✅
+                </div>
+                <div>
+                  <p class="font-semibold text-slate-900">{{ s.title }}</p>
+                  <p class="text-sm text-slate-500">Séance de présence</p>
+                </div>
+              </div>
+            </td>
+
+            <td class="px-6 py-4 text-sm text-slate-700">
+              {{ s.formation }}
+            </td>
+
+            <td class="px-6 py-4 text-sm text-slate-700">
+              {{ s.date|date:"d/m/Y" }}
+            </td>
+
+            <td class="px-6 py-4 text-sm text-slate-700">
+              {{ s.count }}
+            </td>
+
+            <td class="px-6 py-4">
+              {% if s.is_open %}
+                <span class="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+                  Ouverte
+                </span>
+              {% else %}
+                <span class="inline-flex rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-700">
+                  Clôturée
+                </span>
+              {% endif %}
+            </td>
+
+            <td class="px-6 py-4">
+              <div class="flex items-center justify-end gap-2">
+                <a href="{% url 'admin_dashboard:attendance_checkin' s.id %}"
+                   class="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
+                  Voir
+                </a>
+
+                <a href="{% url 'admin_dashboard:export_attendance_excel' s.id %}"
+                   class="inline-flex items-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800">
+                  Excel
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="px-6 py-16 text-center">
+              <p class="text-base font-medium text-slate-600">Aucune séance de présence trouvée</p>
+              <p class="mt-1 text-sm text-slate-400">Ajustez vos filtres ou ouvrez une nouvelle séance depuis le planning.</p>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="flex flex-col gap-4 border-t border-slate-200 px-6 py-4 md:flex-row md:items-center md:justify-between">
+      <p class="text-sm text-slate-500">
+        Total : <span class="font-semibold text-slate-800">{{ sessions_page.paginator.count }}</span> séances
+      </p>
+
+      <div class="flex flex-wrap items-center gap-2">
+        {% if sessions_page.has_previous %}
+          <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ sessions_page.previous_page_number }}"
+             class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50">
+            Précédent
+          </a>
+        {% else %}
+          <span class="rounded-xl border border-slate-100 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-300">
+            Précédent
+          </span>
+        {% endif %}
+
+        {% for num in sessions_page.paginator.page_range %}
+          {% if sessions_page.number == num %}
+            <span class="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
+              {{ num }}
+            </span>
+          {% else %}
+            <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ num }}"
+               class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50">
+              {{ num }}
+            </a>
+          {% endif %}
+        {% endfor %}
+
+        {% if sessions_page.has_next %}
+          <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ sessions_page.next_page_number }}"
+             class="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800">
+            Suivant
+          </a>
+        {% else %}
+          <span class="rounded-xl bg-slate-200 px-4 py-2 text-sm font-medium text-slate-400">
+            Suivant
+          </span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

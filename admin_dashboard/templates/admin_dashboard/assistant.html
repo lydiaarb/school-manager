@@ -1,0 +1,95 @@
+{% extends "admin_dashboard/base_admin.html" %}
+
+{% block title %}Assistant IA{% endblock %}
+
+{% block content %}
+
+<div class="mx-auto max-w-5xl space-y-6">
+
+  <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div>
+        <h1 class="text-3xl font-bold text-slate-900">Assistant IA</h1>
+        <p class="mt-2 text-sm text-slate-500">
+          Posez une question sur les étudiants, paiements, présences, finances ou notifications.
+        </p>
+      </div>
+
+      <div class="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
+        Admin only
+      </div>
+    </div>
+  </div>
+  <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <h2 class="text-lg font-bold text-slate-900">Questions suggérées</h2>
+    <p class="mt-1 text-sm text-slate-500">
+      Cliquez ou recopiez une question pour tester l’assistant.
+    </p>
+
+    <div class="mt-4 grid gap-3 md:grid-cols-2">
+      {% for suggestion in suggestions %}
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="query" value="{{ suggestion }}">
+        <button
+          type="submit"
+          class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+        >
+          {{ suggestion }}
+        </button>
+      </form>
+      {% endfor %}
+    </div>
+  </div>
+
+
+  <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <form method="post" class="space-y-4">
+      {% csrf_token %}
+
+      <div>
+        <label class="mb-2 block text-sm font-semibold text-slate-700">
+          Votre question
+        </label>
+
+        <textarea
+          name="query"
+          rows="4"
+          placeholder="Ex : Donne-moi un résumé global du centre..."
+          class="w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none focus:border-slate-400"
+        ></textarea>
+      </div>
+
+      <div class="flex justify-end">
+        <button
+          type="submit"
+          class="rounded-2xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-black"
+        >
+          Demander à l’assistant
+        </button>
+      </div>
+    </form>
+  </div>
+
+  {% if response %}
+  <div class="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
+    <div class="mb-3 flex items-center gap-2">
+      <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-600 text-white">
+        🤖
+      </div>
+      <div>
+        <p class="font-semibold text-emerald-900">Réponse de l’assistant</p>
+        <p class="text-xs text-emerald-700">Analyse basée sur les données du système</p>
+      </div>
+    </div>
+
+    <p class="leading-7 text-emerald-900">
+      {{ response }}
+    </p>
+  </div>
+  {% endif %}
+
+  
+</div>
+
+{% endblock %}

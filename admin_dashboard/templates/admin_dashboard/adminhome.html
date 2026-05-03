@@ -1,0 +1,442 @@
+{% extends "admin_dashboard/base_admin.html" %}
+{% block title %}Tableau de bord{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+
+  <!-- Header -->
+  <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+    <div>
+      <h1 class="text-3xl font-bold text-slate-900">
+        Bon retour,
+        {% if request.user.is_authenticated %}
+          {{ request.user.get_username }}
+        {% else %}
+          Admin
+        {% endif %} !
+      </h1>
+      <p class="mt-2 text-slate-600">
+        Voici un aperçu rapide de l’activité de votre centre de formation aujourd’hui.
+      </p>
+    </div>
+<a href="{% url 'admin_dashboard:statistics_report' %}" target="_blank"
+   class="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm font-semibold text-slate-800 transition hover:bg-slate-100">
+  Rapport statistique
+</a>
+    <div class="inline-flex items-center rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 shadow-sm">
+      Centre de formation culinaire Jouri
+    </div>
+  </div>
+
+  <!-- Main stats -->
+  <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <p class="text-sm font-medium text-slate-500">Étudiants</p>
+      <h2 class="mt-3 text-4xl font-bold text-slate-900">{{ total_students|default:"0" }}</h2>
+      <p class="mt-2 text-sm text-slate-500">Total des étudiants enregistrés</p>
+    </div>
+
+    <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <p class="text-sm font-medium text-slate-500">Employés</p>
+      <h2 class="mt-3 text-4xl font-bold text-slate-900">{{ total_employees|default:"0" }}</h2>
+      <p class="mt-2 text-sm text-slate-500">Formateurs et personnel du centre</p>
+    </div>
+
+    <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <p class="text-sm font-medium text-slate-500">Séances actives</p>
+      <h2 class="mt-3 text-4xl font-bold text-slate-900">{{ total_sessions|default:"0" }}</h2>
+      <p class="mt-2 text-sm text-slate-500">Cours planifiés actuellement</p>
+    </div>
+
+    <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <p class="text-sm font-medium text-slate-500">Demandes en attente</p>
+      <h2 class="mt-3 text-4xl font-bold text-slate-900">{{ pending_requests|default:"0" }}</h2>
+      <p class="mt-2 text-sm text-slate-500">Demandes d’inscription à traiter</p>
+    </div>
+  </div>
+
+  <!-- Charts row -->
+  <div class="grid gap-6 xl:grid-cols-3">
+
+    <!-- Overview chart -->
+    <div class="xl:col-span-2 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div class="mb-5 flex items-center justify-between">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Vue globale</h2>
+          <p class="mt-1 text-sm text-slate-500">Résumé des principaux modules du centre.</p>
+        </div>
+      </div>
+
+      <div class="h-80">
+        <canvas id="overviewChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Attendance doughnut -->
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div class="mb-5">
+        <h2 class="text-xl font-bold text-slate-900">Présence</h2>
+        <p class="mt-1 text-sm text-slate-500">Répartition des présences.</p>
+      </div>
+
+      <div class="h-80">
+        <canvas id="attendanceChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Secondary stats -->
+  <div class="grid gap-4 lg:grid-cols-3">
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <p class="text-sm font-medium text-slate-500">Revenus totaux</p>
+      <h3 class="mt-2 text-3xl font-bold text-slate-900">{{ total_revenue|default:"0" }} DZD</h3>
+      <p class="mt-3 text-sm text-slate-500">Total des revenus enregistrés dans le système.</p>
+    </div>
+
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <p class="text-sm font-medium text-slate-500">Nouveaux étudiants</p>
+      <h3 class="mt-2 text-3xl font-bold text-slate-900">{{ recent_students|length|default:"0" }}</h3>
+      <p class="mt-3 text-sm text-slate-500">Derniers étudiants ajoutés récemment.</p>
+    </div>
+
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <p class="text-sm font-medium text-slate-500">Transactions récentes</p>
+      <h3 class="mt-2 text-3xl font-bold text-slate-900">{{ recent_transactions|length|default:"0" }}</h3>
+      <p class="mt-3 text-sm text-slate-500">Dernières opérations financières enregistrées.</p>
+    </div>
+  </div>
+
+  <!-- Charts row 2 -->
+  <div class="grid gap-6 xl:grid-cols-2">
+
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <h2 class="text-xl font-bold text-slate-900">Finance</h2>
+      <p class="mt-1 text-sm text-slate-500">Revenus et activité financière.</p>
+
+      <div class="mt-5 h-72">
+        <canvas id="financeChart"></canvas>
+      </div>
+    </div>
+
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <h2 class="text-xl font-bold text-slate-900">Activité récente</h2>
+      <p class="mt-1 text-sm text-slate-500">Étudiants et transactions récents.</p>
+
+      <div class="mt-5 h-72">
+        <canvas id="activityChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Attendance stats -->
+  <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <p class="text-sm font-medium text-slate-500">Taux de présence</p>
+      <h2 class="mt-3 text-4xl font-bold text-emerald-600">{{ attendance_rate|default:"0" }}%</h2>
+      <p class="mt-2 text-sm text-slate-500">Présence globale enregistrée</p>
+    </div>
+
+    <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <p class="text-sm font-medium text-slate-500">Présents</p>
+      <h2 class="mt-3 text-4xl font-bold text-emerald-600">{{ present_count|default:"0" }}</h2>
+      <p class="mt-2 text-sm text-slate-500">Présences validées</p>
+    </div>
+
+    <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <p class="text-sm font-medium text-slate-500">Retards</p>
+      <h2 class="mt-3 text-4xl font-bold text-amber-600">{{ late_count|default:"0" }}</h2>
+      <p class="mt-2 text-sm text-slate-500">Étudiants arrivés en retard</p>
+    </div>
+
+    <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <p class="text-sm font-medium text-slate-500">Absences</p>
+      <h2 class="mt-3 text-4xl font-bold text-rose-600">{{ absent_count|default:"0" }}</h2>
+      <p class="mt-2 text-sm text-slate-500">Absences enregistrées</p>
+    </div>
+  </div>
+
+  <!-- Best formation -->
+  <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <p class="text-sm font-medium text-slate-500">Meilleure formation</p>
+
+    {% if best_formation %}
+      <h3 class="mt-2 text-3xl font-bold text-slate-900">{{ best_formation.title }}</h3>
+      <p class="mt-2 text-sm text-slate-500">
+        Meilleur taux de présence :
+        <span class="font-semibold text-emerald-600">{{ best_rate }}%</span>
+      </p>
+    {% else %}
+      <h3 class="mt-2 text-2xl font-bold text-slate-900">Aucune donnée</h3>
+      <p class="mt-2 text-sm text-slate-500">
+        Aucune statistique de présence disponible pour le moment.
+      </p>
+    {% endif %}
+  </div>
+
+  <!-- Recent activity -->
+  <div class="grid gap-6 xl:grid-cols-2">
+
+    <!-- Recent students -->
+    <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+      <div class="border-b border-slate-100 px-6 py-5">
+        <h2 class="text-xl font-bold text-slate-900">Derniers étudiants</h2>
+        <p class="mt-1 text-sm text-slate-500">Les inscriptions les plus récentes.</p>
+      </div>
+
+      <div class="divide-y divide-slate-100">
+        {% for student in recent_students %}
+          <div class="flex items-center justify-between px-6 py-4">
+            <div class="flex items-center gap-3">
+              <div class="flex h-11 w-11 items-center justify-center rounded-full bg-slate-200 text-sm font-bold text-slate-700">
+                {{ student.first_name|slice:":1" }}{{ student.last_name|slice:":1" }}
+              </div>
+              <div>
+                <p class="font-semibold text-slate-900">{{ student.first_name }} {{ student.last_name }}</p>
+                <p class="text-sm text-slate-500">{{ student.formation.title|default:"Formation non définie" }}</p>
+              </div>
+            </div>
+
+            <span class="text-sm text-slate-500">{{ student.created_at|date:"d/m/Y" }}</span>
+          </div>
+        {% empty %}
+          <div class="px-6 py-10 text-center">
+            <p class="text-sm font-medium text-slate-600">Aucun étudiant récent.</p>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Recent transactions -->
+    <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+      <div class="border-b border-slate-100 px-6 py-5">
+        <h2 class="text-xl font-bold text-slate-900">Transactions récentes</h2>
+        <p class="mt-1 text-sm text-slate-500">Les dernières entrées financières du centre.</p>
+      </div>
+
+      <div class="divide-y divide-slate-100">
+        {% for transaction in recent_transactions %}
+          <div class="flex items-center justify-between px-6 py-4">
+            <div>
+              <div class="flex items-center gap-2">
+                <p class="font-semibold text-slate-900">{{ transaction.ref }}</p>
+
+                {% if transaction.type == "Income" %}
+                  <span class="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+                    Revenu
+                  </span>
+                {% else %}
+                  <span class="inline-flex rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-700">
+                    Dépense
+                  </span>
+                {% endif %}
+              </div>
+
+              <p class="mt-1 text-sm text-slate-500">
+                {{ transaction.category }} • {{ transaction.date|date:"d/m/Y" }}
+              </p>
+            </div>
+
+            <p class="text-sm font-bold {% if transaction.type == 'Income' %}text-emerald-600{% else %}text-rose-600{% endif %}">
+              {% if transaction.type == "Expense" %}-{% endif %}{{ transaction.amount }} DZD
+            </p>
+          </div>
+        {% empty %}
+          <div class="px-6 py-10 text-center">
+            <p class="text-sm font-medium text-slate-600">Aucune transaction récente.</p>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick actions -->
+  <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <h2 class="text-xl font-bold text-slate-900">Actions rapides</h2>
+    <p class="mt-1 text-sm text-slate-500">
+      Accédez rapidement aux modules les plus utilisés.
+    </p>
+
+    <div class="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <a href="{% url 'admin_dashboard:students' %}"
+         class="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm font-semibold text-slate-800 transition hover:bg-slate-100">
+        Gérer les étudiants
+      </a>
+
+      <a href="{% url 'admin_dashboard:employees' %}"
+         class="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm font-semibold text-slate-800 transition hover:bg-slate-100">
+        Gérer les employés
+      </a>
+
+      <a href="{% url 'admin_dashboard:formations' %}"
+         class="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm font-semibold text-slate-800 transition hover:bg-slate-100">
+        Gérer les formations
+      </a>
+
+      <a href="{% url 'admin_dashboard:registration_requests' %}"
+         class="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm font-semibold text-slate-800 transition hover:bg-slate-100">
+        Voir les demandes
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+  const totalStudents = Number("{{ total_students|default:0 }}");
+  const totalEmployees = Number("{{ total_employees|default:0 }}");
+  const totalSessions = Number("{{ total_sessions|default:0 }}");
+  const pendingRequests = Number("{{ pending_requests|default:0 }}");
+
+  const presentCount = Number("{{ present_count|default:0 }}");
+  const lateCount = Number("{{ late_count|default:0 }}");
+  const absentCount = Number("{{ absent_count|default:0 }}");
+
+  const totalRevenue = Number("{{ total_revenue|default:0 }}");
+  const recentStudents = Number("{{ recent_students|length|default:0 }}");
+  const recentTransactions = Number("{{ recent_transactions|length|default:0 }}");
+
+  const chartGridColor = "rgba(148, 163, 184, 0.18)";
+  const chartTextColor = "#64748b";
+
+  const baseOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        labels: {
+          color: chartTextColor,
+          font: {
+            family: "Inter, system-ui, sans-serif"
+          }
+        }
+      }
+    }
+  };
+
+  new Chart(document.getElementById("overviewChart"), {
+    type: "bar",
+    data: {
+      labels: ["Étudiants", "Employés", "Séances", "Demandes"],
+      datasets: [{
+        label: "Total",
+        data: [totalStudents, totalEmployees, totalSessions, pendingRequests],
+        backgroundColor: [
+          "rgba(59, 130, 246, 0.75)",
+          "rgba(16, 185, 129, 0.75)",
+          "rgba(245, 158, 11, 0.75)",
+          "rgba(244, 63, 94, 0.75)"
+        ],
+        borderColor: [
+          "rgb(59, 130, 246)",
+          "rgb(16, 185, 129)",
+          "rgb(245, 158, 11)",
+          "rgb(244, 63, 94)"
+        ],
+        borderWidth: 1,
+        borderRadius: 14
+      }]
+    },
+    options: {
+      ...baseOptions,
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { color: chartTextColor }
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: chartGridColor },
+          ticks: { color: chartTextColor, precision: 0 }
+        }
+      }
+    }
+  });
+
+  new Chart(document.getElementById("attendanceChart"), {
+    type: "doughnut",
+    data: {
+      labels: ["Présents", "Retards", "Absences"],
+      datasets: [{
+        data: [presentCount, lateCount, absentCount],
+        backgroundColor: [
+          "rgba(16, 185, 129, 0.85)",
+          "rgba(245, 158, 11, 0.85)",
+          "rgba(244, 63, 94, 0.85)"
+        ],
+        borderColor: "#ffffff",
+        borderWidth: 4,
+        hoverOffset: 8
+      }]
+    },
+    options: {
+      ...baseOptions,
+      cutout: "68%"
+    }
+  });
+
+  new Chart(document.getElementById("financeChart"), {
+    type: "line",
+    data: {
+      labels: ["Revenus", "Transactions récentes"],
+      datasets: [{
+        label: "Finance",
+        data: [totalRevenue, recentTransactions],
+        borderColor: "rgb(16, 185, 129)",
+        backgroundColor: "rgba(16, 185, 129, 0.12)",
+        fill: true,
+        tension: 0.4,
+        pointRadius: 5,
+        pointHoverRadius: 7
+      }]
+    },
+    options: {
+      ...baseOptions,
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { color: chartTextColor }
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: chartGridColor },
+          ticks: { color: chartTextColor }
+        }
+      }
+    }
+  });
+
+  new Chart(document.getElementById("activityChart"), {
+    type: "radar",
+    data: {
+      labels: ["Nouveaux étudiants", "Transactions", "Présents", "Retards", "Absences"],
+      datasets: [{
+        label: "Activité",
+        data: [recentStudents, recentTransactions, presentCount, lateCount, absentCount],
+        backgroundColor: "rgba(59, 130, 246, 0.18)",
+        borderColor: "rgb(59, 130, 246)",
+        pointBackgroundColor: "rgb(59, 130, 246)",
+        borderWidth: 2
+      }]
+    },
+    options: {
+      ...baseOptions,
+      scales: {
+        r: {
+          beginAtZero: true,
+          grid: { color: chartGridColor },
+          angleLines: { color: chartGridColor },
+          pointLabels: { color: chartTextColor },
+          ticks: {
+            color: chartTextColor,
+            backdropColor: "transparent",
+            precision: 0
+          }
+        }
+      }
+    }
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,384 @@
+{% extends "admin_dashboard/base_admin.html" %}
+{% load static %}
+{% block title %}Notifications{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+    <div>
+      <h1 class="text-3xl font-bold tracking-tight text-slate-900">Notifications</h1>
+      <p class="mt-1 text-base text-slate-500">
+        Suivez les mises à jour importantes, rappels, alertes et l’activité du système.
+      </p>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <a href="{% url 'admin_dashboard:export_notifications_excel' %}?q={{ request.GET.q|default:'' }}&type={{ request.GET.type|default:'' }}&status={{ request.GET.status|default:'' }}"
+         class="inline-flex items-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
+        Exporter Excel
+      </a>
+
+      <a href="{% url 'admin_dashboard:notifications' %}"
+         class="inline-flex items-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
+        Actualiser
+      </a>
+
+      <form method="POST" action="{% url 'admin_dashboard:mark_all_notifications_read' %}">
+        {% csrf_token %}
+        <button type="submit"
+                class="inline-flex items-center rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800">
+          Tout marquer comme lu
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <p class="text-sm font-medium text-slate-500">Total notifications</p>
+      <h2 class="mt-3 text-4xl font-bold text-slate-900">{{ total_notifications }}</h2>
+      <p class="mt-2 text-sm text-slate-500">Toutes les notifications enregistrées</p>
+    </div>
+
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <p class="text-sm font-medium text-slate-500">Non lues</p>
+      <h2 class="mt-3 text-4xl font-bold text-slate-900">{{ unread_notifications }}</h2>
+      <p class="mt-2 text-sm text-slate-500">Demandent votre attention</p>
+    </div>
+
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <p class="text-sm font-medium text-slate-500">Aujourd’hui</p>
+      <h2 class="mt-3 text-4xl font-bold text-slate-900">{{ today_notifications }}</h2>
+      <p class="mt-2 text-sm text-slate-500">Reçues aujourd’hui</p>
+    </div>
+
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <p class="text-sm font-medium text-slate-500">Haute priorité</p>
+      <h2 class="mt-3 text-4xl font-bold text-slate-900">{{ high_priority_notifications }}</h2>
+      <p class="mt-2 text-sm text-slate-500">Éléments urgents</p>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+    <form method="get" class="grid grid-cols-1 gap-3 xl:grid-cols-12">
+      <div class="xl:col-span-5">
+        <div class="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+          <span class="mr-3 text-lg text-slate-400">🔎</span>
+          <input
+            type="text"
+            name="q"
+            value="{{ request.GET.q }}"
+            placeholder="Rechercher une notification..."
+            class="w-full border-0 bg-transparent p-0 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-0"
+          >
+        </div>
+      </div>
+
+      <div class="xl:col-span-3">
+        <select name="type" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 focus:border-slate-300 focus:outline-none">
+          <option value="">Tous les types</option>
+          {% for item in notification_types %}
+            <option value="{{ item.value }}" {% if request.GET.type == item.value %}selected{% endif %}>
+              {{ item.label }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="xl:col-span-2">
+        <select name="status" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 focus:border-slate-300 focus:outline-none">
+          <option value="">Tous les statuts</option>
+          <option value="unread" {% if request.GET.status == "unread" %}selected{% endif %}>Non lues</option>
+          <option value="read" {% if request.GET.status == "read" %}selected{% endif %}>Lues</option>
+        </select>
+      </div>
+
+      <div class="xl:col-span-2 flex gap-3">
+        <button type="submit"
+                class="flex-1 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">
+          Filtrer
+        </button>
+        <a href="{% url 'admin_dashboard:notifications' %}"
+           class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+          Réinitialiser
+        </a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Notifications list -->
+  <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+    <div class="border-b border-slate-200 px-6 py-5">
+      <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Notifications récentes</h2>
+          <p class="text-sm text-slate-500">Dernières alertes et mises à jour du système.</p>
+        </div>
+        <p class="text-sm text-slate-500">
+          Total :
+          <span class="font-semibold text-slate-800">{{ notifications.paginator.count|default:"0" }}</span>
+        </p>
+      </div>
+    </div>
+
+    <div class="divide-y divide-slate-100">
+      {% for notification in notifications %}
+        <div class="px-6 py-5 transition hover:bg-slate-50/70">
+          <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div class="flex min-w-0 flex-1 gap-4">
+              <div class="mt-1 flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl
+                {% if notification.type == 'payment' %}bg-emerald-100 text-emerald-700
+                {% elif notification.type == 'student' %}bg-blue-100 text-blue-700
+                {% elif notification.type == 'teacher' %}bg-violet-100 text-violet-700
+                {% elif notification.type == 'timetable' %}bg-amber-100 text-amber-700
+                {% elif notification.type == 'system' %}bg-slate-200 text-slate-700
+                {% elif notification.type == 'warning' %}bg-rose-100 text-rose-700
+                {% else %}bg-slate-100 text-slate-700{% endif %}">
+                <span class="text-lg font-bold">
+                  {{ notification.title|slice:":1"|upper }}
+                </span>
+              </div>
+
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2">
+                  <h3 class="text-base font-semibold text-slate-900">
+                    {{ notification.title }}
+                  </h3>
+
+                  {% if not notification.is_read %}
+                    <span class="inline-flex rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
+                      Non lue
+                    </span>
+                  {% else %}
+                    <span class="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                      Lue
+                    </span>
+                  {% endif %}
+
+                  {% if notification.priority == "high" %}
+                    <span class="inline-flex rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-700">
+                      Haute priorité
+                    </span>
+                  {% elif notification.priority == "medium" %}
+                    <span class="inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">
+                      Priorité moyenne
+                    </span>
+                  {% else %}
+                    <span class="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+                      Priorité faible
+                    </span>
+                  {% endif %}
+
+                  <span class="inline-flex rounded-full px-3 py-1 text-xs font-semibold
+                    {% if notification.type == 'payment' %}bg-emerald-100 text-emerald-700
+                    {% elif notification.type == 'student' %}bg-blue-100 text-blue-700
+                    {% elif notification.type == 'teacher' %}bg-violet-100 text-violet-700
+                    {% elif notification.type == 'timetable' %}bg-amber-100 text-amber-700
+                    {% elif notification.type == 'system' %}bg-slate-200 text-slate-700
+                    {% elif notification.type == 'warning' %}bg-rose-100 text-rose-700
+                    {% else %}bg-slate-100 text-slate-700{% endif %}">
+                    {{ notification.get_type_display }}
+                  </span>
+                </div>
+
+                <p class="mt-2 text-sm leading-6 text-slate-600">
+                  {{ notification.message }}
+                </p>
+
+                <div class="mt-3 flex flex-wrap items-center gap-4 text-xs text-slate-500">
+                  <span>{{ notification.created_at|date:"d/m/Y" }}</span>
+                  <span>{{ notification.created_at|time:"H:i" }}</span>
+
+                  {% if notification.related_object %}
+                    <span class="rounded-full bg-slate-100 px-3 py-1 font-medium text-slate-600">
+                      {{ notification.related_object }}
+                    </span>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <div class="flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                onclick="openNotificationModal(this)"
+                data-title="{{ notification.title|escapejs }}"
+                data-message="{{ notification.message|escapejs }}"
+                data-type="{{ notification.get_type_display|escapejs }}"
+                data-priority="{{ notification.get_priority_display|escapejs }}"
+                data-date="{{ notification.created_at|date:'d/m/Y H:i' }}"
+                data-related="{% if notification.related_object %}{{ notification.related_object|escapejs }}{% endif %}"
+                class="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+              >
+                Ouvrir
+              </button>
+
+              {% if not notification.is_read %}
+                <form method="POST" action="{% url 'admin_dashboard:mark_notification_read' notification.id %}">
+                  {% csrf_token %}
+                  <button type="submit"
+                          class="inline-flex items-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800">
+                    Marquer comme lue
+                  </button>
+                </form>
+              {% else %}
+                <span class="inline-flex items-center rounded-xl bg-slate-200 px-4 py-2 text-sm font-medium text-slate-600">
+                  Déjà lue
+                </span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      {% empty %}
+        <div class="px-6 py-16 text-center">
+          <p class="text-base font-medium text-slate-600">Aucune notification trouvée.</p>
+          <p class="mt-1 text-sm text-slate-400">Essayez de modifier les filtres ou attendez une nouvelle activité.</p>
+        </div>
+      {% endfor %}
+    </div>
+
+    {% if notifications %}
+      <div class="flex flex-col gap-4 border-t border-slate-200 px-6 py-4 md:flex-row md:items-center md:justify-between">
+        <p class="text-sm text-slate-500">
+          Page
+          <span class="font-semibold text-slate-800">{{ notifications.number }}</span>
+          sur
+          <span class="font-semibold text-slate-800">{{ notifications.paginator.num_pages }}</span>
+        </p>
+
+        <div class="flex items-center gap-2">
+          {% if notifications.has_previous %}
+            <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ notifications.previous_page_number }}"
+               class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
+              Précédent
+            </a>
+          {% else %}
+            <span class="rounded-xl border border-slate-100 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-300">
+              Précédent
+            </span>
+          {% endif %}
+
+          {% for num in notifications.paginator.page_range %}
+            {% if notifications.number == num %}
+              <span class="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
+                {{ num }}
+              </span>
+            {% else %}
+              <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ num }}"
+                 class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
+                {{ num }}
+              </a>
+            {% endif %}
+          {% endfor %}
+
+          {% if notifications.has_next %}
+            <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ notifications.next_page_number }}"
+               class="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+              Suivant
+            </a>
+          {% else %}
+            <span class="rounded-xl bg-slate-200 px-4 py-2 text-sm font-medium text-slate-400">
+              Suivant
+            </span>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Notification Modal -->
+<div id="notificationModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4">
+  <div class="w-full max-w-2xl rounded-3xl bg-white shadow-xl">
+    <div class="flex items-center justify-between border-b border-slate-100 px-6 py-5">
+      <h2 id="modalTitle" class="text-xl font-bold text-slate-900">Notification</h2>
+      <button
+        type="button"
+        onclick="closeNotificationModal()"
+        class="text-slate-400 transition hover:text-slate-700"
+      >
+        ✕
+      </button>
+    </div>
+
+    <div class="space-y-5 px-6 py-5">
+      <div class="grid gap-3 sm:grid-cols-2">
+        <div class="rounded-2xl bg-slate-50 p-4">
+          <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Type</p>
+          <p id="modalType" class="mt-1 text-sm font-medium text-slate-800">—</p>
+        </div>
+
+        <div class="rounded-2xl bg-slate-50 p-4">
+          <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Priorité</p>
+          <p id="modalPriority" class="mt-1 text-sm font-medium text-slate-800">—</p>
+        </div>
+
+        <div class="rounded-2xl bg-slate-50 p-4">
+          <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Date</p>
+          <p id="modalDate" class="mt-1 text-sm font-medium text-slate-800">—</p>
+        </div>
+
+        <div class="rounded-2xl bg-slate-50 p-4">
+          <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Objet lié</p>
+          <p id="modalRelated" class="mt-1 text-sm font-medium text-slate-800">—</p>
+        </div>
+      </div>
+
+      <div class="rounded-2xl border border-slate-200 bg-white p-5">
+        <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Message</p>
+        <p id="modalMessage" class="mt-3 whitespace-pre-line text-sm leading-7 text-slate-700"></p>
+      </div>
+    </div>
+
+    <div class="flex justify-end border-t border-slate-100 px-6 py-4">
+      <button
+        type="button"
+        onclick="closeNotificationModal()"
+        class="rounded-2xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+      >
+        Fermer
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openNotificationModal(button) {
+  const modal = document.getElementById("notificationModal");
+
+  document.getElementById("modalTitle").textContent = button.dataset.title || "Notification";
+  document.getElementById("modalType").textContent = button.dataset.type || "—";
+  document.getElementById("modalPriority").textContent = button.dataset.priority || "—";
+  document.getElementById("modalDate").textContent = button.dataset.date || "—";
+  document.getElementById("modalRelated").textContent = button.dataset.related || "—";
+  document.getElementById("modalMessage").textContent = button.dataset.message || "";
+
+  modal.classList.remove("hidden");
+  modal.classList.add("flex");
+}
+
+function closeNotificationModal() {
+  const modal = document.getElementById("notificationModal");
+  modal.classList.add("hidden");
+  modal.classList.remove("flex");
+}
+
+window.addEventListener("click", function (e) {
+  const modal = document.getElementById("notificationModal");
+  if (e.target === modal) {
+    closeNotificationModal();
+  }
+});
+
+document.addEventListener("keydown", function (e) {
+  if (e.key === "Escape") {
+    closeNotificationModal();
+  }
+});
+</script>
+{% endblock %}

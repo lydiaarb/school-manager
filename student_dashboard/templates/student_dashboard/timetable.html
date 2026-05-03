@@ -1,0 +1,80 @@
+{% extends "student_dashboard/base.html" %}
+
+{% block student_title %}Mon emploi du temps{% endblock %}
+
+{% block student_page_heading %}
+Mon emploi du temps
+{% endblock %}
+
+{% block student_content %}
+
+<div class="rounded-3xl border border-slate-200 bg-white shadow-sm">
+
+  <div class="flex flex-col gap-2 border-b border-slate-100 px-6 py-5 md:flex-row md:items-center md:justify-between">
+    <div>
+      <h2 class="text-lg font-semibold text-slate-900">Mes cours programmés</h2>
+      <p class="text-sm text-slate-500">Consultez vos séances, enseignants et salles.</p>
+    </div>
+  </div>
+
+  <div class="divide-y divide-slate-100">
+    {% for session in sessions %}
+
+      <div class="flex flex-col gap-4 px-6 py-5 md:flex-row md:items-center md:justify-between">
+
+        <div class="flex items-start gap-4">
+          <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-lg">
+            📚
+          </div>
+
+          <div>
+            <h3 class="font-semibold text-slate-900">
+              {{ session.title }}
+            </h3>
+
+            <div class="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-500">
+              <span>{{ session.get_day_display }}</span>
+              <span class="h-1 w-1 rounded-full bg-slate-300"></span>
+              <span>{{ session.time_label }}</span>
+            </div>
+
+            <div class="mt-3 flex flex-wrap gap-2 text-xs">
+              {% if session.teacher %}
+                <span class="rounded-full bg-slate-100 px-3 py-1 font-medium text-slate-600">
+                  {{ session.teacher.first_name }} {{ session.teacher.last_name }}
+                </span>
+              {% endif %}
+
+              {% if session.room %}
+                <span class="rounded-full bg-slate-100 px-3 py-1 font-medium text-slate-600">
+                  Salle {{ session.room.name }}
+                </span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <span class="inline-flex w-fit rounded-full bg-slate-900 px-3 py-1 text-xs font-medium text-white">
+          Programmé
+        </span>
+
+      </div>
+
+    {% empty %}
+
+      <div class="px-6 py-14 text-center">
+        <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-2xl">
+          🗓️
+        </div>
+        <h3 class="text-base font-semibold text-slate-900">Aucune séance trouvée</h3>
+        <p class="mt-1 text-sm text-slate-500">
+          Votre emploi du temps sera affiché ici dès qu’il sera disponible.
+        </p>
+      </div>
+
+    {% endfor %}
+  </div>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,511 @@
+{% extends "admin_dashboard/base_admin.html" %}
+{% load static %}
+{% block title %}Étudiants{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <!-- Page header -->
+  <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+    <div>
+      <h1 class="text-3xl font-bold tracking-tight text-slate-900">Étudiants</h1>
+      <p class="mt-1 text-base text-slate-500">
+        Gérez la liste des étudiants inscrits dans votre centre de formation culinaire.
+      </p>
+    </div>
+
+    <div class="flex items-center gap-3">
+    
+      <a href="{% url 'admin_dashboard:export_students_excel' %}?q={{ request.GET.q|default:'' }}&formation={{ request.GET.formation|default:'' }}&payment_status={{ request.GET.payment_status|default:'' }}"
+         class="inline-flex items-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
+        Exporter Excel
+      </a>
+
+
+      <button onclick="openModal()"
+        class="rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white">
+        + Ajouter un étudiant
+      </button>
+    </div>
+  </div>
+
+  <!-- Stats cards -->
+  <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <p class="text-sm font-medium text-slate-500">Total étudiants</p>
+      <h2 class="mt-3 text-4xl font-bold text-slate-900">{{ total_students|default:"0" }}</h2>
+      <p class="mt-2 text-sm text-slate-500">Tous les étudiants inscrits</p>
+    </div>
+
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <p class="text-sm font-medium text-slate-500">Étudiants actifs</p>
+      <h2 class="mt-3 text-4xl font-bold text-slate-900">{{ active_students|default:"0" }}</h2>
+      <p class="mt-2 text-sm text-slate-500">Actuellement en formation</p>
+    </div>
+
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <p class="text-sm font-medium text-slate-500">Nouveaux ce mois</p>
+      <h2 class="mt-3 text-4xl font-bold text-slate-900">{{ new_students|default:"0" }}</h2>
+      <p class="mt-2 text-sm text-slate-500">Inscriptions récentes</p>
+    </div>
+
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <p class="text-sm font-medium text-slate-500">Paiements en attente</p>
+      <h2 class="mt-3 text-4xl font-bold text-slate-900">{{ pending_payments|default:"0" }}</h2>
+      <p class="mt-2 text-sm text-slate-500">Suivi de paiement requis</p>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+    <form method="get" class="grid grid-cols-1 gap-3 xl:grid-cols-12">
+      <div class="xl:col-span-5">
+        <div class="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+          <span class="mr-3 text-lg text-slate-400">🔎</span>
+          <input
+            type="text"
+            name="q"
+            value="{{ request.GET.q }}"
+            placeholder="Rechercher par nom ou téléphone..."
+            class="w-full border-0 bg-transparent p-0 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-0"
+          >
+        </div>
+      </div>
+
+      <div class="xl:col-span-3">
+        <select name="formation" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 focus:border-slate-300 focus:outline-none">
+          <option value="">Toutes les formations</option>
+          {% for formation in formations %}
+            <option value="{{ formation.id }}" {% if request.GET.formation == formation.id|stringformat:"s" %}selected{% endif %}>
+              {{ formation.title }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="xl:col-span-2">
+        <select name="payment_status" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 focus:border-slate-300 focus:outline-none">
+          <option value="">Tous les paiements</option>
+          <option value="paid" {% if request.GET.payment_status == "paid" %}selected{% endif %}>Payé</option>
+          <option value="pending" {% if request.GET.payment_status == "pending" %}selected{% endif %}>En attente</option>
+          <option value="partial" {% if request.GET.payment_status == "partial" %}selected{% endif %}>Partiel</option>
+        </select>
+      </div>
+
+      <div class="xl:col-span-2 flex gap-3">
+        <button type="submit"
+                class="flex-1 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">
+          Filtrer
+        </button>
+        <a href="{% url 'admin_dashboard:students' %}"
+           class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+          Réinitialiser
+        </a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Students table -->
+  <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-slate-200">
+        <thead class="bg-slate-50">
+          <tr>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Étudiant</th>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Téléphone</th>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Formation</th>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Date de début</th>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Paiement</th>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Présence</th>
+            <th class="px-6 py-4 text-right text-sm font-semibold text-slate-700">Actions</th>
+          </tr>
+        </thead>
+
+        <tbody class="divide-y divide-slate-100">
+          {% for student in students %}
+          <tr class="hover:bg-slate-50/70 transition">
+            <td class="px-6 py-4">
+              <div class="flex items-center gap-3">
+                <div class="flex h-11 w-11 items-center justify-center rounded-full bg-slate-200 text-sm font-bold text-slate-700">
+                  {{ student.first_name|default:"S"|slice:":1" }}{{ student.last_name|default:"T"|slice:":1" }}
+                </div>
+                <div>
+                  <p class="font-semibold text-slate-900">
+                    {{ student.first_name }} {{ student.last_name }}
+                  </p>
+                  <p class="text-sm text-slate-500">
+                    ID : {{ student.id }}
+                  </p>
+                </div>
+              </div>
+            </td>
+
+            <td class="px-6 py-4 text-sm text-slate-700">
+              {{ student.phone|default:"—" }}
+            </td>
+
+            <td class="px-6 py-4 text-sm text-slate-700">
+              {{ student.formation.title|default:"—" }}
+            </td>
+
+            <td class="px-6 py-4 text-sm text-slate-700">
+              {{ student.start_date|date:"d/m/Y"|default:"—" }}
+            </td>
+
+            <td class="px-6 py-4">
+              {% if student.payment_status == "paid" %}
+                <span class="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+                  Payé
+                </span>
+              {% elif student.payment_status == "partial" %}
+                <span class="inline-flex rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
+                  Partiel
+                </span>
+              {% else %}
+                <span class="inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">
+                  En attente
+                </span>
+              {% endif %}
+            </td>
+
+            <td class="px-6 py-4">
+              {% if student.attendance_percentage >= 80 %}
+                <span class="text-sm font-semibold text-emerald-600">
+                  {{ student.attendance_percentage|default:"0" }}%
+                </span>
+              {% elif student.attendance_percentage >= 50 %}
+                <span class="text-sm font-semibold text-amber-600">
+                  {{ student.attendance_percentage|default:"0" }}%
+                </span>
+              {% else %}
+                <span class="text-sm font-semibold text-rose-600">
+                  {{ student.attendance_percentage|default:"0" }}%
+                </span>
+              {% endif %}
+            </td>
+
+            <td class="px-6 py-4">
+              <div class="flex items-center justify-end gap-2">
+  
+<a href="{% url 'admin_dashboard:student_detail' student.id %}"
+                   class="inline-flex items-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800">
+                  Voir
+                </a>
+                <button
+                  type="button"
+                  onclick="openEditModal(this)"
+                  data-id="{{ student.id }}"
+                  data-first-name="{{ student.first_name }}"
+                  data-last-name="{{ student.last_name }}"
+                  data-phone="{{ student.phone }}"
+                  data-formation="{{ student.formation.id }}"
+                  data-start-date="{{ student.start_date|date:'Y-m-d' }}"
+                  data-payment-status="{{ student.payment_status }}"
+                  data-is-active="{{ student.is_active|yesno:'true,false' }}"
+                  data-is-new="{{ student.is_new|yesno:'true,false' }}"
+                  class="inline-flex items-center rounded-xl bg-rose-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-rose-600">
+                  Modifier
+                </button>
+                <button
+                  type="button"
+                  onclick="openDeleteModal(this)"
+                  data-id="{{ student.id }}"
+                  data-name="{{ student.first_name }} {{ student.last_name }}"
+                  class="inline-flex items-center rounded-xl bg-red-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-600">
+                  Supprimer
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" class="px-6 py-16 text-center">
+              <p class="text-base font-medium text-slate-600">Aucun étudiant trouvé.</p>
+              <p class="mt-1 text-sm text-slate-400">Essayez de modifier les filtres ou ajoutez un nouvel étudiant.</p>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Footer -->
+    <div class="flex flex-col gap-4 border-t border-slate-200 px-6 py-4 md:flex-row md:items-center md:justify-between">
+      <p class="text-sm text-slate-500">
+        Total : <span class="font-semibold text-slate-800">{{ students.paginator.count|default:"0" }}</span> étudiant{{ students.paginator.count|pluralize }}
+      </p>
+
+      <div class="flex items-center gap-2">
+        {% if students.has_previous %}
+          <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ students.previous_page_number }}"
+             class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
+            Précédent
+          </a>
+        {% else %}
+          <span class="rounded-xl border border-slate-100 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-300">
+            Précédent
+          </span>
+        {% endif %}
+
+        {% for num in students.paginator.page_range %}
+          {% if students.number == num %}
+            <span class="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
+              {{ num }}
+            </span>
+          {% else %}
+            <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ num }}"
+               class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
+              {{ num }}
+            </a>
+          {% endif %}
+        {% endfor %}
+
+        {% if students.has_next %}
+          <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ students.next_page_number }}"
+             class="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+            Suivant
+          </a>
+        {% else %}
+          <span class="rounded-xl bg-slate-200 px-4 py-2 text-sm font-medium text-slate-400">
+            Suivant
+          </span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Ajouter -->
+<div id="modalOverlay"
+     class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-sm">
+  <div class="w-full max-w-2xl rounded-3xl bg-white p-6 shadow-xl">
+    <div class="flex items-center justify-between">
+      <h2 class="text-xl font-bold text-slate-900">Ajouter un étudiant</h2>
+      <button onclick="closeModal()" class="text-slate-500 hover:text-slate-700">✖</button>
+    </div>
+
+    <form method="POST" class="mt-6 space-y-4">
+      {% csrf_token %}
+
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <input type="text" name="first_name" placeholder="Prénom"
+               class="w-full rounded-2xl border border-slate-200 px-4 py-3">
+        <input type="text" name="last_name" placeholder="Nom"
+               class="w-full rounded-2xl border border-slate-200 px-4 py-3">
+      </div>
+
+      <input type="text" name="phone" placeholder="Téléphone"
+             class="w-full rounded-2xl border border-slate-200 px-4 py-3">
+
+      <select name="formation" class="w-full rounded-2xl border border-slate-200 px-4 py-3">
+        <option value="">Choisir une formation</option>
+        {% for formation in formations %}
+          <option value="{{ formation.id }}">{{ formation.title }}</option>
+        {% endfor %}
+      </select>
+
+      <input type="date" name="start_date"
+             class="w-full rounded-2xl border border-slate-200 px-4 py-3">
+
+      <select name="payment_status" class="w-full rounded-2xl border border-slate-200 px-4 py-3">
+        <option value="pending">En attente</option>
+        <option value="paid">Payé</option>
+        <option value="partial">Partiel</option>
+      </select>
+
+      <div class="flex items-center gap-4">
+        <label class="flex items-center gap-2">
+          <input type="checkbox" name="is_active" checked>
+          Actif
+        </label>
+        <label class="flex items-center gap-2">
+          <input type="checkbox" name="is_new" checked>
+          Nouveau
+        </label>
+      </div>
+
+      <div class="flex justify-end gap-3 pt-4">
+        <button type="button" onclick="closeModal()"
+                class="rounded-2xl border px-4 py-2 text-sm">
+          Annuler
+        </button>
+        <button type="submit"
+                class="rounded-2xl bg-slate-900 px-4 py-2 text-sm text-white">
+          Enregistrer
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Modifier -->
+<div id="editStudentModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4">
+  <div class="w-full max-w-2xl rounded-3xl bg-white p-6 shadow-xl">
+    <div class="flex items-center justify-between">
+      <h2 class="text-xl font-bold text-slate-900">Modifier l'étudiant</h2>
+      <button type="button" onclick="closeEditModal()" class="text-slate-500 hover:text-slate-700">✕</button>
+    </div>
+
+    <form method="POST" class="mt-6 space-y-4">
+      {% csrf_token %}
+      <input type="hidden" name="student_id" id="edit_student_id">
+
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div>
+          <label class="mb-2 block text-sm font-medium text-slate-700">Prénom</label>
+          <input type="text" name="first_name" id="edit_first_name"
+                 class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:outline-none">
+        </div>
+        <div>
+          <label class="mb-2 block text-sm font-medium text-slate-700">Nom</label>
+          <input type="text" name="last_name" id="edit_last_name"
+                 class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:outline-none">
+        </div>
+      </div>
+
+      <div>
+        <label class="mb-2 block text-sm font-medium text-slate-700">Téléphone</label>
+        <input type="text" name="phone" id="edit_phone"
+               class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:outline-none">
+      </div>
+
+      <div>
+        <label class="mb-2 block text-sm font-medium text-slate-700">Formation</label>
+        <select name="formation" id="edit_formation"
+                class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:outline-none">
+          {% for formation in formations %}
+            <option value="{{ formation.id }}">{{ formation.title }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label class="mb-2 block text-sm font-medium text-slate-700">Date de début</label>
+        <input type="date" name="start_date" id="edit_start_date"
+               class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:outline-none">
+      </div>
+
+      <div>
+        <label class="mb-2 block text-sm font-medium text-slate-700">Statut de paiement</label>
+        <select name="payment_status" id="edit_payment_status"
+                class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:outline-none">
+          <option value="pending">En attente</option>
+          <option value="paid">Payé</option>
+          <option value="partial">Partiel</option>
+        </select>
+      </div>
+
+      <div class="flex items-center gap-6">
+        <label class="flex items-center gap-2 text-sm text-slate-700">
+          <input type="checkbox" name="is_active" id="edit_is_active">
+          Actif
+        </label>
+        <label class="flex items-center gap-2 text-sm text-slate-700">
+          <input type="checkbox" name="is_new" id="edit_is_new">
+          Nouveau
+        </label>
+      </div>
+
+      <div class="flex justify-end gap-3 pt-4">
+        <button type="button" onclick="closeEditModal()"
+                class="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700">
+          Annuler
+        </button>
+        <button type="submit"
+                class="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
+          Enregistrer les modifications
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Supprimer -->
+<div id="deleteStudentModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4">
+  <div class="w-full max-w-md rounded-3xl bg-white p-6 shadow-xl">
+    <div class="flex items-center justify-between">
+      <h2 class="text-xl font-bold text-slate-900">Supprimer l'étudiant</h2>
+      <button type="button" onclick="closeDeleteModal()" class="text-slate-500 hover:text-slate-700">✕</button>
+    </div>
+
+    <div class="mt-4">
+      <p class="text-sm text-slate-600">
+        Êtes-vous sûr de vouloir supprimer
+        <span id="delete_student_name" class="font-semibold text-slate-900"></span> ?
+      </p>
+      <p class="mt-2 text-sm text-red-500">
+        Cette action est irréversible.
+      </p>
+    </div>
+
+    <form method="POST" class="mt-6 flex justify-end gap-3">
+      {% csrf_token %}
+      <input type="hidden" name="delete_student_id" id="delete_student_id">
+
+      <button type="button" onclick="closeDeleteModal()"
+              class="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700">
+        Annuler
+      </button>
+      <button type="submit"
+              class="rounded-2xl bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600">
+        Supprimer
+      </button>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openModal() {
+  document.getElementById("modalOverlay").classList.remove("hidden");
+  document.getElementById("modalOverlay").classList.add("flex");
+}
+
+function closeModal() {
+  document.getElementById("modalOverlay").classList.remove("flex");
+  document.getElementById("modalOverlay").classList.add("hidden");
+}
+
+function openEditModal(button) {
+  document.getElementById("editStudentModal").classList.remove("hidden");
+  document.getElementById("editStudentModal").classList.add("flex");
+
+  document.getElementById("edit_student_id").value = button.dataset.id;
+  document.getElementById("edit_first_name").value = button.dataset.firstName;
+  document.getElementById("edit_last_name").value = button.dataset.lastName;
+  document.getElementById("edit_phone").value = button.dataset.phone;
+  document.getElementById("edit_formation").value = button.dataset.formation;
+  document.getElementById("edit_start_date").value = button.dataset.startDate;
+  document.getElementById("edit_payment_status").value = button.dataset.paymentStatus;
+  document.getElementById("edit_is_active").checked = button.dataset.isActive === "true";
+  document.getElementById("edit_is_new").checked = button.dataset.isNew === "true";
+}
+
+function closeEditModal() {
+  document.getElementById("editStudentModal").classList.remove("flex");
+  document.getElementById("editStudentModal").classList.add("hidden");
+}
+
+function openDeleteModal(button) {
+  document.getElementById("deleteStudentModal").classList.remove("hidden");
+  document.getElementById("deleteStudentModal").classList.add("flex");
+
+  document.getElementById("delete_student_id").value = button.dataset.id;
+  document.getElementById("delete_student_name").textContent = button.dataset.name;
+}
+
+function closeDeleteModal() {
+  document.getElementById("deleteStudentModal").classList.remove("flex");
+  document.getElementById("deleteStudentModal").classList.add("hidden");
+}
+
+document.addEventListener("keydown", function (event) {
+  if (event.key === "Escape") {
+    closeModal();
+    closeEditModal();
+    closeDeleteModal();
+  }
+});
+</script>
+{% endblock %}

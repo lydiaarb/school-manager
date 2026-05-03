@@ -1,0 +1,431 @@
+{% extends "admin_dashboard/base_admin.html" %}
+{% load static %}
+{% block title %}Salles{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+    <div>
+      <h1 class="text-3xl font-bold tracking-tight text-slate-900">Salles</h1>
+      <p class="mt-1 text-base text-slate-500">
+        Gérez les salles utilisées pour les formations et le planning du centre Jouri.
+      </p>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <a href="{% url 'admin_dashboard:export_rooms_excel' %}?q={{ request.GET.q|default:'' }}&status={{ request.GET.status|default:'' }}"
+         class="inline-flex items-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
+        Exporter Excel
+      </a>
+
+      <button
+        type="button"
+        onclick="openAddRoomModal()"
+        class="inline-flex items-center rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800">
+        + Ajouter une salle
+      </button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <p class="text-sm font-medium text-slate-500">Total des salles</p>
+      <h2 class="mt-3 text-4xl font-bold text-slate-900">{{ total_rooms }}</h2>
+      <p class="mt-2 text-sm text-slate-500">Toutes les salles enregistrées</p>
+    </div>
+
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <p class="text-sm font-medium text-slate-500">Salles actives</p>
+      <h2 class="mt-3 text-4xl font-bold text-slate-900">{{ active_rooms }}</h2>
+      <p class="mt-2 text-sm text-slate-500">Disponibles à l’utilisation</p>
+    </div>
+
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <p class="text-sm font-medium text-slate-500">Salles inactives</p>
+      <h2 class="mt-3 text-4xl font-bold text-slate-900">{{ inactive_rooms }}</h2>
+      <p class="mt-2 text-sm text-slate-500">Temporairement indisponibles</p>
+    </div>
+
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <p class="text-sm font-medium text-slate-500">Capacité totale</p>
+      <h2 class="mt-3 text-4xl font-bold text-slate-900">{{ total_capacity }}</h2>
+      <p class="mt-2 text-sm text-slate-500">Capacité cumulée des salles</p>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+    <form method="get" class="grid grid-cols-1 gap-3 xl:grid-cols-12">
+      <div class="xl:col-span-8">
+        <div class="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+          <span class="mr-3 text-lg text-slate-400">🔎</span>
+          <input
+            type="text"
+            name="q"
+            value="{{ request.GET.q }}"
+            placeholder="Rechercher une salle par nom ou code..."
+            class="w-full border-0 bg-transparent p-0 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-0"
+          >
+        </div>
+      </div>
+
+      <div class="xl:col-span-2">
+        <select name="status" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 focus:border-slate-300 focus:outline-none">
+          <option value="">Tous les statuts</option>
+          <option value="active" {% if request.GET.status == "active" %}selected{% endif %}>Actif</option>
+          <option value="inactive" {% if request.GET.status == "inactive" %}selected{% endif %}>Inactif</option>
+        </select>
+      </div>
+
+      <div class="xl:col-span-2 flex gap-3">
+        <button type="submit"
+                class="flex-1 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">
+          Filtrer
+        </button>
+        <a href="{% url 'admin_dashboard:rooms' %}"
+           class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+          Réinitialiser
+        </a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Rooms table -->
+  <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-slate-200">
+        <thead class="bg-slate-50">
+          <tr>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Salle</th>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Code</th>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Capacité</th>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Statut</th>
+            <th class="px-6 py-4 text-right text-sm font-semibold text-slate-700">Actions</th>
+          </tr>
+        </thead>
+
+        <tbody class="divide-y divide-slate-100">
+          {% for room in rooms %}
+          <tr class="transition hover:bg-slate-50/70">
+            <td class="px-6 py-4">
+              <div class="flex items-center gap-3">
+                <div class="flex h-11 w-11 items-center justify-center rounded-full bg-slate-200 text-sm font-bold text-slate-700">
+                  {{ room.name|slice:":1" }}
+                </div>
+                <div>
+                  <p class="font-semibold text-slate-900">{{ room.name }}</p>
+                  <p class="text-sm text-slate-500">
+                    {% if room.code %}{{ room.code }}{% else %}Aucun code{% endif %}
+                  </p>
+                </div>
+              </div>
+            </td>
+
+            <td class="px-6 py-4 text-sm text-slate-700">
+              {{ room.code|default:"—" }}
+            </td>
+
+            <td class="px-6 py-4 text-sm text-slate-700">
+              {{ room.capacity }}
+            </td>
+
+            <td class="px-6 py-4">
+              {% if room.is_active %}
+                <span class="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+                  Active
+                </span>
+              {% else %}
+                <span class="inline-flex rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-700">
+                  Inactive
+                </span>
+              {% endif %}
+            </td>
+
+            <td class="px-6 py-4">
+              <div class="flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onclick="openEditRoomModal(this)"
+                  data-id="{{ room.id }}"
+                  data-name="{{ room.name }}"
+                  data-code="{{ room.code }}"
+                  data-capacity="{{ room.capacity }}"
+                  data-is-active="{{ room.is_active|yesno:'true,false' }}"
+                  class="inline-flex items-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800">
+                  Modifier
+                </button>
+
+                <button
+                  type="button"
+                  onclick="openDeleteRoomModal(this)"
+                  data-id="{{ room.id }}"
+                  data-name="{{ room.name }}"
+                  class="inline-flex items-center rounded-xl bg-red-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-600">
+                  Supprimer
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="5" class="px-6 py-16 text-center">
+              <p class="text-base font-medium text-slate-600">Aucune salle trouvée</p>
+              <p class="mt-1 text-sm text-slate-400">Ajoutez une salle ou modifiez vos filtres.</p>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="flex flex-col gap-4 border-t border-slate-200 px-6 py-4 md:flex-row md:items-center md:justify-between">
+      <p class="text-sm text-slate-500">
+        Total : <span class="font-semibold text-slate-800">{{ rooms.paginator.count }}</span> salles
+      </p>
+
+      <div class="flex flex-wrap items-center gap-2">
+        {% if rooms.has_previous %}
+          <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ rooms.previous_page_number }}"
+             class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50">
+            Précédent
+          </a>
+        {% else %}
+          <span class="rounded-xl border border-slate-100 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-300">
+            Précédent
+          </span>
+        {% endif %}
+
+        {% for num in rooms.paginator.page_range %}
+          {% if rooms.number == num %}
+            <span class="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
+              {{ num }}
+            </span>
+          {% else %}
+            <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ num }}"
+               class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50">
+              {{ num }}
+            </a>
+          {% endif %}
+        {% endfor %}
+
+        {% if rooms.has_next %}
+          <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ rooms.next_page_number }}"
+             class="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800">
+            Suivant
+          </a>
+        {% else %}
+          <span class="rounded-xl bg-slate-200 px-4 py-2 text-sm font-medium text-slate-400">
+            Suivant
+          </span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Room Modal -->
+<div id="addRoomModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4">
+  <div class="w-full max-w-2xl rounded-3xl bg-white p-6 shadow-xl">
+    <div class="flex items-center justify-between">
+      <h2 class="text-xl font-bold text-slate-900">Ajouter une salle</h2>
+      <button type="button" onclick="closeAddRoomModal()" class="text-slate-500 hover:text-slate-700">✕</button>
+    </div>
+
+    <form method="POST" class="mt-6 space-y-4">
+      {% csrf_token %}
+      <input type="hidden" name="form_type" value="add_room">
+
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div>
+          <label class="mb-2 block text-sm font-medium text-slate-700">Nom</label>
+          <input type="text" name="name" required
+                 class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200">
+        </div>
+
+        <div>
+          <label class="mb-2 block text-sm font-medium text-slate-700">Code</label>
+          <input type="text" name="code"
+                 class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div>
+          <label class="mb-2 block text-sm font-medium text-slate-700">Capacité</label>
+          <input type="number" name="capacity" min="0"
+                 class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200">
+        </div>
+
+        <div class="flex items-end">
+          <label class="flex items-center gap-2 text-sm text-slate-700">
+            <input type="checkbox" name="is_active" checked>
+            Active
+          </label>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-3 pt-4">
+        <button type="button" onclick="closeAddRoomModal()"
+                class="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+          Annuler
+        </button>
+        <button type="submit"
+                class="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800">
+          Enregistrer
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit Room Modal -->
+<div id="editRoomModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4">
+  <div class="w-full max-w-2xl rounded-3xl bg-white p-6 shadow-xl">
+    <div class="flex items-center justify-between">
+      <h2 class="text-xl font-bold text-slate-900">Modifier la salle</h2>
+      <button type="button" onclick="closeEditRoomModal()" class="text-slate-500 hover:text-slate-700">✕</button>
+    </div>
+
+    <form method="POST" class="mt-6 space-y-4">
+      {% csrf_token %}
+      <input type="hidden" name="form_type" value="edit_room">
+      <input type="hidden" name="room_id" id="edit_room_id">
+
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div>
+          <label class="mb-2 block text-sm font-medium text-slate-700">Nom</label>
+          <input type="text" name="name" id="edit_room_name" required
+                 class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200">
+        </div>
+
+        <div>
+          <label class="mb-2 block text-sm font-medium text-slate-700">Code</label>
+          <input type="text" name="code" id="edit_room_code"
+                 class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div>
+          <label class="mb-2 block text-sm font-medium text-slate-700">Capacité</label>
+          <input type="number" name="capacity" id="edit_room_capacity" min="0"
+                 class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200">
+        </div>
+
+        <div class="flex items-end">
+          <label class="flex items-center gap-2 text-sm text-slate-700">
+            <input type="checkbox" name="is_active" id="edit_room_is_active">
+            Active
+          </label>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-3 pt-4">
+        <button type="button" onclick="closeEditRoomModal()"
+                class="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+          Annuler
+        </button>
+        <button type="submit"
+                class="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800">
+          Enregistrer les modifications
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Delete Room Modal -->
+<div id="deleteRoomModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4">
+  <div class="w-full max-w-md rounded-3xl bg-white p-6 shadow-xl">
+    <div class="flex items-center justify-between">
+      <h2 class="text-xl font-bold text-slate-900">Supprimer la salle</h2>
+      <button type="button" onclick="closeDeleteRoomModal()" class="text-slate-500 hover:text-slate-700">✕</button>
+    </div>
+
+    <div class="mt-4">
+      <p class="text-sm text-slate-600">
+        Voulez-vous vraiment supprimer
+        <span id="delete_room_name" class="font-semibold text-slate-900"></span>
+        ?
+      </p>
+      <p class="mt-2 text-sm text-red-500">Cette action est irréversible.</p>
+    </div>
+
+    <form method="POST" class="mt-6 flex justify-end gap-3">
+      {% csrf_token %}
+      <input type="hidden" name="form_type" value="delete_room">
+      <input type="hidden" name="delete_room_id" id="delete_room_id">
+
+      <button type="button" onclick="closeDeleteRoomModal()"
+              class="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+        Annuler
+      </button>
+
+      <button type="submit"
+              class="rounded-2xl bg-red-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-600">
+        Supprimer
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openAddRoomModal() {
+  const modal = document.getElementById("addRoomModal");
+  modal.classList.remove("hidden");
+  modal.classList.add("flex");
+}
+
+function closeAddRoomModal() {
+  const modal = document.getElementById("addRoomModal");
+  modal.classList.remove("flex");
+  modal.classList.add("hidden");
+}
+
+function openEditRoomModal(button) {
+  const modal = document.getElementById("editRoomModal");
+  modal.classList.remove("hidden");
+  modal.classList.add("flex");
+
+  document.getElementById("edit_room_id").value = button.dataset.id || "";
+  document.getElementById("edit_room_name").value = button.dataset.name || "";
+  document.getElementById("edit_room_code").value = button.dataset.code || "";
+  document.getElementById("edit_room_capacity").value = button.dataset.capacity || "";
+  document.getElementById("edit_room_is_active").checked = button.dataset.isActive === "true";
+}
+
+function closeEditRoomModal() {
+  const modal = document.getElementById("editRoomModal");
+  modal.classList.remove("flex");
+  modal.classList.add("hidden");
+}
+
+function openDeleteRoomModal(button) {
+  const modal = document.getElementById("deleteRoomModal");
+  modal.classList.remove("hidden");
+  modal.classList.add("flex");
+
+  document.getElementById("delete_room_id").value = button.dataset.id || "";
+  document.getElementById("delete_room_name").textContent = button.dataset.name || "";
+}
+
+function closeDeleteRoomModal() {
+  const modal = document.getElementById("deleteRoomModal");
+  modal.classList.remove("flex");
+  modal.classList.add("hidden");
+}
+
+document.addEventListener("keydown", function (event) {
+  if (event.key === "Escape") {
+    closeAddRoomModal();
+    closeEditRoomModal();
+    closeDeleteRoomModal();
+  }
+});
+</script>
+{% endblock %}

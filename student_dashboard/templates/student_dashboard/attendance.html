@@ -1,0 +1,93 @@
+{% extends "student_dashboard/base.html" %}
+
+{% block student_title %}Mes présences{% endblock %}
+
+{% block student_page_heading %}
+Historique de présence
+{% endblock %}
+
+{% block student_content %}
+
+<div class="rounded-3xl border border-slate-200 bg-white shadow-sm">
+
+  <!-- Header -->
+  <div class="flex flex-col gap-3 border-b border-slate-100 px-6 py-5 md:flex-row md:items-center md:justify-between">
+    
+    <div>
+      <h2 class="text-lg font-semibold text-slate-900">Mes présences</h2>
+      <p class="text-sm text-slate-500">Suivi de votre participation aux séances</p>
+    </div>
+
+    <div class="rounded-xl bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700">
+      Taux : <span class="font-semibold">{{ student.attendance_percentage }}%</span>
+    </div>
+
+  </div>
+
+  <!-- Content -->
+  <div class="space-y-4 px-6 py-5">
+
+    {% for record in records %}
+
+    <div class="flex items-center justify-between rounded-2xl border border-slate-100 p-4">
+
+      <!-- Left -->
+      <div class="flex items-center gap-3">
+
+        <!-- Status dot -->
+        <span class="h-3 w-3 rounded-full
+          {% if record.status == 'present' %} bg-emerald-500
+          {% elif record.status == 'late' %} bg-amber-500
+          {% else %} bg-red-500 {% endif %}">
+        </span>
+
+        <div>
+          <p class="font-medium text-slate-800">
+            {{ record.attendance_session.timetable_session.title }}
+          </p>
+
+          <p class="text-sm text-slate-500">
+            {{ record.scanned_at|date:"d/m/Y H:i" }}
+          </p>
+        </div>
+
+      </div>
+
+      <!-- Status badge -->
+      <span class="text-xs font-semibold px-3 py-1 rounded-full
+        {% if record.status == 'present' %} bg-emerald-50 text-emerald-600
+        {% elif record.status == 'late' %} bg-amber-50 text-amber-600
+        {% else %} bg-red-50 text-red-600 {% endif %}">
+        
+        {% if record.status == 'present' %} Présent
+        {% elif record.status == 'late' %} Retard
+        {% else %} Absent {% endif %}
+      
+      </span>
+
+    </div>
+
+    {% empty %}
+
+    <!-- Empty state -->
+    <div class="py-14 text-center">
+      <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-2xl">
+        📊
+      </div>
+
+      <h3 class="text-base font-semibold text-slate-900">
+        Aucun historique disponible
+      </h3>
+
+      <p class="mt-1 text-sm text-slate-500">
+        Vos présences apparaîtront ici après vos premières séances.
+      </p>
+    </div>
+
+    {% endfor %}
+
+  </div>
+
+</div>
+
+{% endblock %}

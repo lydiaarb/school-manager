@@ -1,0 +1,1010 @@
+{% extends "admin_dashboard/base_admin.html" %}
+{% block content %}
+
+<div class="space-y-6 p-6">
+
+  <!-- Header -->
+  <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+    <div>
+      <h1 class="text-3xl font-bold tracking-tight text-slate-900">Finance</h1>
+      <p class="mt-1 text-base text-slate-500">
+        Vue d’ensemble pour <span class="font-semibold text-slate-700">{{ month_label }}</span>
+      </p>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <a href="{% url 'admin_dashboard:export_finance_excel' %}?q={{ request.GET.q|default:'' }}&type={{ request.GET.type|default:'' }}&status={{ request.GET.status|default:'' }}&method={{ request.GET.method|default:'' }}"
+         class="inline-flex items-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
+        Exporter Excel
+      </a>
+
+      <button onclick="openInvoiceModal()"
+              class="rounded-2xl border border-blue-200 bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700">
+        + Créer une facture
+      </button>
+
+      <button onclick="openAddModal()"
+              class="rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white hover:bg-black">
+        + Ajouter une transaction
+      </button>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <p class="text-sm font-medium text-slate-500">Revenus totaux</p>
+      <h2 class="mt-3 text-4xl font-bold text-slate-900">{{ total_revenue }}</h2>
+      <p class="mt-2 text-sm text-slate-500">DZD — Tous les revenus de la période</p>
+    </div>
+
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <p class="text-sm font-medium text-slate-500">Coûts totaux</p>
+      <h2 class="mt-3 text-4xl font-bold text-slate-900">{{ total_cost }}</h2>
+      <p class="mt-2 text-sm text-slate-500">DZD — Toutes les dépenses de la période</p>
+    </div>
+
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <p class="text-sm font-medium text-slate-500">Bénéfice</p>
+      <h2 class="mt-3 text-4xl font-bold text-slate-900">{{ total_profit }}</h2>
+      <p class="mt-2 text-sm text-slate-500">DZD — Revenus - Coûts</p>
+    </div>
+
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <p class="text-sm font-medium text-slate-500">Factures en attente</p>
+      <h2 class="mt-3 text-4xl font-bold text-slate-900">{{ pending_invoices }}</h2>
+      <p class="mt-2 text-sm text-slate-500">Nécessitent un suivi</p>
+    </div>
+  </div>
+
+  <!-- Chart + Breakdown -->
+  <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm font-semibold text-slate-900">Revenus vs coûts</p>
+          <p class="text-xs text-slate-500">Tendance de la période</p>
+        </div>
+
+        <div class="flex gap-2">
+          <a href="?period=week"
+             class="rounded-xl px-3 py-1.5 text-xs font-semibold {% if selected_period == 'week' %}bg-slate-900 text-white{% else %}border border-slate-200 text-slate-700 hover:bg-slate-50{% endif %}">
+            Semaine
+          </a>
+          <a href="?period=month"
+             class="rounded-xl px-3 py-1.5 text-xs font-semibold {% if selected_period == 'month' %}bg-slate-900 text-white{% else %}border border-slate-200 text-slate-700 hover:bg-slate-50{% endif %}">
+            Mois
+          </a>
+          <a href="?period=year"
+             class="rounded-xl px-3 py-1.5 text-xs font-semibold {% if selected_period == 'year' %}bg-slate-900 text-white{% else %}border border-slate-200 text-slate-700 hover:bg-slate-50{% endif %}">
+            Année
+          </a>
+        </div>
+      </div>
+
+      <div class="mt-5 rounded-2xl bg-slate-50 p-5">
+        <div class="h-72">
+          <canvas id="financeChart"></canvas>
+        </div>
+      </div>
+
+      <div class="mt-4 grid grid-cols-2 gap-3">
+        <button onclick="openAddModal()"
+                class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-semibold text-slate-800 transition hover:bg-slate-50">
+          + Ajouter un revenu
+          <p class="mt-1 text-xs font-normal text-slate-500">Frais, inscription, services…</p>
+        </button>
+
+        <button onclick="openAddModal()"
+                class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-semibold text-slate-800 transition hover:bg-slate-50">
+          + Ajouter une dépense
+          <p class="mt-1 text-xs font-normal text-slate-500">Loyer, salaires, publicité, charges…</p>
+        </button>
+      </div>
+    </div>
+
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <p class="text-sm font-semibold text-slate-900">Répartition par catégorie</p>
+      <p class="text-xs text-slate-500">Catégories principales</p>
+
+      <div class="mt-4 space-y-3">
+        {% for c in category_breakdown %}
+        <div class="flex items-center justify-between rounded-2xl border border-slate-100 p-3">
+          <div>
+            <p class="text-sm font-semibold text-slate-900">{{ c.name }}</p>
+            <p class="text-xs text-slate-500">{{ c.type }}</p>
+          </div>
+          <p class="text-sm font-bold text-slate-900">{{ c.amount }} DZD</p>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="mt-4 rounded-2xl bg-slate-50 p-3 text-xs text-slate-500">
+        Astuce : utilisez des catégories claires pour garder des rapports propres (Loyer, Salaires, Publicité, Charges, Frais de formation…)
+      </div>
+    </div>
+  </div>
+
+
+<!-- Student invoices table -->
+<div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+
+  <div class="border-b border-slate-100 px-6 py-4">
+    <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+      <div>
+        <p class="text-sm font-semibold text-slate-900">Factures étudiants</p>
+        <p class="text-xs text-slate-500">Suivi des factures, paiements et retards</p>
+      </div>
+
+      <form method="get" class="grid grid-cols-1 gap-3 md:grid-cols-4 xl:w-[720px]">
+        <input type="hidden" name="period" value="{{ selected_period }}">
+
+        <div class="md:col-span-2">
+          <div class="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <span class="mr-3 text-lg text-slate-400">🔎</span>
+            <input type="text"
+                   name="invoice_q"
+                   value="{{ request.GET.invoice_q }}"
+                   placeholder="Étudiant, formation..."
+                   class="w-full border-0 bg-transparent p-0 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-0">
+          </div>
+        </div>
+
+        <select name="invoice_status"
+                class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 focus:outline-none">
+          <option value="">Tous les statuts</option>
+          <option value="unpaid" {% if request.GET.invoice_status == "unpaid" %}selected{% endif %}>Non payé</option>
+          <option value="partial" {% if request.GET.invoice_status == "partial" %}selected{% endif %}>Partiel</option>
+          <option value="paid" {% if request.GET.invoice_status == "paid" %}selected{% endif %}>Payé</option>
+          <option value="overdue" {% if request.GET.invoice_status == "overdue" %}selected{% endif %}>En retard</option>
+        </select>
+
+        <div class="flex gap-2">
+          <button type="submit"
+                  class="flex-1 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">
+            Filtrer
+          </button>
+
+          <a href="{% url 'admin_dashboard:finance' %}"
+             class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+            Reset
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-slate-200">
+      <thead class="bg-slate-50">
+        <tr>
+          <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Étudiant</th>
+          <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Formation</th>
+          <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Total</th>
+          <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Payé</th>
+          <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Statut</th>
+          <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Échéance</th>
+          <th class="px-6 py-4 text-right text-sm font-semibold text-slate-700">Actions</th>
+        </tr>
+      </thead>
+
+      <tbody class="divide-y divide-slate-100">
+        {% for invoice in invoices %}
+        <tr class="hover:bg-slate-50/70 transition">
+          <td class="px-6 py-4">
+            <p class="font-semibold text-slate-900">
+              {{ invoice.student.first_name }} {{ invoice.student.last_name }}
+            </p>
+            <p class="text-xs text-slate-500">Facture #{{ invoice.id }}</p>
+          </td>
+
+          <td class="px-6 py-4 text-sm text-slate-700">
+            {{ invoice.formation.title }}
+          </td>
+
+          <td class="px-6 py-4 text-sm font-semibold text-slate-900">
+            {{ invoice.total_amount }} DZD
+          </td>
+
+          <td class="px-6 py-4 text-sm font-semibold text-emerald-600">
+            {{ invoice.paid_amount }} DZD
+          </td>
+
+          <td class="px-6 py-4">
+            {% if invoice.status == "paid" %}
+              <span class="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">Payée</span>
+            {% elif invoice.status == "partial" %}
+              <span class="inline-flex rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">Partielle</span>
+            {% elif invoice.status == "overdue" %}
+              <span class="inline-flex rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">En retard</span>
+            {% else %}
+              <span class="inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">En attente</span>
+            {% endif %}
+          </td>
+
+          <td class="px-6 py-4 text-sm text-slate-700">
+            {{ invoice.due_date|date:"d/m/Y" }}
+          </td>
+
+          <td class="px-6 py-4">
+            <div class="flex justify-end">
+              {% if invoice.status != "paid" %}
+                <button type="button"
+                        onclick="openPaymentModal(this)"
+                        data-invoice-id="{{ invoice.id }}"
+                        data-student="{{ invoice.student.first_name }} {{ invoice.student.last_name }}"
+                        data-total="{{ invoice.total_amount }}"
+                        data-paid="{{ invoice.paid_amount }}"
+                        class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+                  Ajouter paiement
+                </button>
+              {% else %}
+                <span class="text-sm font-semibold text-emerald-600">Réglée</span>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" class="px-6 py-12 text-center text-sm text-slate-500">
+            Aucune facture créée pour le moment.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="flex flex-col gap-4 border-t border-slate-200 px-6 py-4 md:flex-row md:items-center md:justify-between">
+    <p class="text-sm text-slate-500">
+      Total : <span class="font-semibold text-slate-800">{{ invoices.paginator.count }}</span>
+      facture{{ invoices.paginator.count|pluralize }}
+    </p>
+
+    <div class="flex items-center gap-2">
+      {% if invoices.has_previous %}
+        <a href="?{% if invoice_query_string %}{{ invoice_query_string }}&{% endif %}invoice_page={{ invoices.previous_page_number }}"
+           class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
+          Précédent
+        </a>
+      {% endif %}
+
+      {% for num in invoices.paginator.page_range %}
+        {% if invoices.number == num %}
+          <span class="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
+            {{ num }}
+          </span>
+        {% else %}
+          <a href="?{% if invoice_query_string %}{{ invoice_query_string }}&{% endif %}invoice_page={{ num }}"
+             class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
+            {{ num }}
+          </a>
+        {% endif %}
+      {% endfor %}
+
+      {% if invoices.has_next %}
+        <a href="?{% if invoice_query_string %}{{ invoice_query_string }}&{% endif %}invoice_page={{ invoices.next_page_number }}"
+           class="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+          Suivant
+        </a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+  <!-- Filters -->
+  <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+    <form method="get" class="grid grid-cols-1 gap-3 xl:grid-cols-12">
+      <input type="hidden" name="period" value="{{ selected_period }}">
+
+      <div class="xl:col-span-4">
+        <div class="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+          <span class="mr-3 text-lg text-slate-400">🔎</span>
+          <input type="text" name="q" value="{{ request.GET.q }}"
+                 placeholder="Réf, catégorie, méthode..."
+                 class="w-full border-0 bg-transparent p-0 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-0">
+        </div>
+      </div>
+
+      <div class="xl:col-span-2">
+        <select name="type" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 focus:outline-none">
+          <option value="">Tous les types</option>
+          <option value="Income" {% if request.GET.type == "Income" %}selected{% endif %}>Revenu</option>
+          <option value="Expense" {% if request.GET.type == "Expense" %}selected{% endif %}>Dépense</option>
+        </select>
+      </div>
+
+      <div class="xl:col-span-2">
+        <select name="status" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 focus:outline-none">
+          <option value="">Tous les statuts</option>
+          <option value="Paid" {% if request.GET.status == "Paid" %}selected{% endif %}>Payée</option>
+          <option value="Pending" {% if request.GET.status == "Pending" %}selected{% endif %}>En attente</option>
+          <option value="Cancelled" {% if request.GET.status == "Cancelled" %}selected{% endif %}>Annulée</option>
+        </select>
+      </div>
+
+      <div class="xl:col-span-2">
+        <select name="method" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 focus:outline-none">
+          <option value="">Toutes les méthodes</option>
+          {% for method in methods %}
+            <option value="{{ method }}" {% if request.GET.method == method %}selected{% endif %}>
+              {{ method }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="xl:col-span-2 flex gap-3">
+        <button type="submit"
+                class="flex-1 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">
+          Filtrer
+        </button>
+
+        <a href="{% url 'admin_dashboard:finance' %}?period={{ selected_period }}"
+           class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+          Réinitialiser
+        </a>
+      </div>
+    </form>
+  </div>
+  <!-- Transactions table -->
+  <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+    <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+      <div>
+        <p class="text-sm font-semibold text-slate-900">Transactions</p>
+        <p class="text-xs text-slate-500">Liste des revenus et dépenses</p>
+      </div>
+
+      <a href="{% url 'admin_dashboard:export_finance_excel' %}?q={{ request.GET.q|default:'' }}&type={{ request.GET.type|default:'' }}&status={{ request.GET.status|default:'' }}&method={{ request.GET.method|default:'' }}"
+         class="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+        Télécharger Excel
+      </a>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-slate-200">
+        <thead class="bg-slate-50">
+          <tr>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Date</th>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Type</th>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Catégorie</th>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Référence</th>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Méthode</th>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Statut</th>
+            <th class="px-6 py-4 text-right text-sm font-semibold text-slate-700">Montant</th>
+            <th class="px-6 py-4 text-right text-sm font-semibold text-slate-700">Actions</th>
+          </tr>
+        </thead>
+
+        <tbody class="divide-y divide-slate-100">
+          {% for t in transactions %}
+          <tr class="hover:bg-slate-50/70 transition">
+            <td class="px-6 py-4 text-sm text-slate-700">{{ t.date|date:"d/m/Y" }}</td>
+
+            <td class="px-6 py-4">
+              {% if t.type == "Income" %}
+                <span class="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">Revenu</span>
+              {% else %}
+                <span class="inline-flex rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">Dépense</span>
+              {% endif %}
+            </td>
+
+            <td class="px-6 py-4 text-sm text-slate-700">{{ t.category }}</td>
+
+            <td class="px-6 py-4 text-sm font-semibold text-slate-900">{{ t.ref }}</td>
+
+            <td class="px-6 py-4 text-sm text-slate-700">{{ t.method }}</td>
+
+            <td class="px-6 py-4">
+              {% if t.status == "Paid" %}
+                <span class="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">Payée</span>
+              {% elif t.status == "Pending" %}
+                <span class="inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">En attente</span>
+              {% else %}
+                <span class="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">Annulée</span>
+              {% endif %}
+            </td>
+
+            <td class="px-6 py-4 text-right text-sm font-bold {% if t.type == 'Expense' %}text-red-600{% else %}text-emerald-600{% endif %}">
+              {% if t.type == "Expense" %}-{% endif %}{{ t.amount }} DZD
+            </td>
+
+            <td class="px-6 py-4">
+              <div class="flex items-center justify-end gap-2">
+                <button type="button"
+                        onclick="openEditModal(this)"
+                        data-id="{{ t.id }}"
+                        data-date="{{ t.date|date:'Y-m-d' }}"
+                        data-type="{{ t.type }}"
+                        data-category="{{ t.category|escapejs }}"
+                        data-ref="{{ t.ref|escapejs }}"
+                        data-method="{{ t.method|escapejs }}"
+                        data-status="{{ t.status }}"
+                        data-amount="{{ t.amount }}"
+                        data-note="{{ t.note|default:''|escapejs }}"
+                        class="inline-flex items-center rounded-xl bg-rose-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-rose-600">
+                  Modifier
+                </button>
+
+                <button type="button"
+                        onclick="openDeleteModal(this)"
+                        data-id="{{ t.id }}"
+                        data-ref="{{ t.ref|escapejs }}"
+                        class="inline-flex items-center rounded-xl bg-red-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-600">
+                  Supprimer
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="px-6 py-16 text-center">
+              <p class="text-base font-medium text-slate-600">Aucune transaction trouvée.</p>
+              <p class="mt-1 text-sm text-slate-400">Ajoutez votre premier revenu ou votre première dépense pour commencer.</p>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Table footer -->
+    <div class="flex flex-col gap-4 border-t border-slate-200 px-6 py-4 md:flex-row md:items-center md:justify-between">
+      <p class="text-sm text-slate-500">
+        Total : <span class="font-semibold text-slate-800">{{ transactions.paginator.count }}</span> transaction{{ transactions.paginator.count|pluralize }}
+      </p>
+
+      <div class="flex items-center gap-2">
+        {% if transactions.has_previous %}
+          <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ transactions.previous_page_number }}"
+             class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
+            Précédent
+          </a>
+        {% else %}
+          <span class="rounded-xl border border-slate-100 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-300">
+            Précédent
+          </span>
+        {% endif %}
+
+        {% for num in transactions.paginator.page_range %}
+          {% if transactions.number == num %}
+            <span class="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
+              {{ num }}
+            </span>
+          {% else %}
+            <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ num }}"
+               class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
+              {{ num }}
+            </a>
+          {% endif %}
+        {% endfor %}
+
+        {% if transactions.has_next %}
+          <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ transactions.next_page_number }}"
+             class="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+            Suivant
+          </a>
+        {% else %}
+          <span class="rounded-xl bg-slate-200 px-4 py-2 text-sm font-medium text-slate-400">
+            Suivant
+          </span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADD MODAL -->
+<div id="addModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+  <div class="w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-xl">
+    <div class="flex items-center justify-between border-b border-slate-100 px-6 py-5">
+      <h2 class="text-xl font-bold text-slate-900">Ajouter une transaction</h2>
+      <button type="button" onclick="closeAddModal()" class="text-slate-400 hover:text-slate-700">✕</button>
+    </div>
+
+    <div class="max-h-[70vh] overflow-y-auto px-6 py-5">
+      <form id="addForm" method="POST" action="{% url 'admin_dashboard:finance' %}" class="space-y-4">
+        {% csrf_token %}
+
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <label class="mb-2 block text-sm font-medium text-slate-700">Date</label>
+            <input type="date" name="date" required
+                   class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none">
+          </div>
+
+          <div>
+            <label class="mb-2 block text-sm font-medium text-slate-700">Type</label>
+            <select name="type" required
+                    class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none">
+              <option value="">Choisir un type</option>
+              <option value="Income">Revenu</option>
+              <option value="Expense">Dépense</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="mb-2 block text-sm font-medium text-slate-700">Catégorie</label>
+            <input type="text" name="category" placeholder="Ex : Frais de formation, Loyer…"
+                   class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none">
+          </div>
+
+          <div>
+            <label class="mb-2 block text-sm font-medium text-slate-700">Référence</label>
+            <input type="text" name="ref" placeholder="Ex : INV-001"
+                   class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none">
+          </div>
+
+          <div>
+            <label class="mb-2 block text-sm font-medium text-slate-700">Méthode</label>
+            <select name="method"
+                    class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none">
+              <option value="">Choisir une méthode</option>
+              <option value="Cash">Espèces</option>
+              <option value="Bank">Banque</option>
+              <option value="Card">Carte</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="mb-2 block text-sm font-medium text-slate-700">Statut</label>
+            <select name="status"
+                    class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none">
+              <option value="Paid">Payée</option>
+              <option value="Pending">En attente</option>
+              <option value="Cancelled">Annulée</option>
+            </select>
+          </div>
+
+          <div class="md:col-span-2">
+            <label class="mb-2 block text-sm font-medium text-slate-700">Montant (DZD)</label>
+            <input type="number" name="amount" placeholder="Ex : 15000" required step="0.01"
+                   class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none">
+          </div>
+
+          <div class="md:col-span-2">
+            <label class="mb-2 block text-sm font-medium text-slate-700">Note</label>
+            <textarea name="note" rows="2" placeholder="Note optionnelle…"
+                      class="w-full resize-none rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none"></textarea>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div class="flex justify-end gap-3 border-t border-slate-100 px-6 py-4">
+      <button type="button" onclick="closeAddModal()"
+              class="rounded-2xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+        Annuler
+      </button>
+
+      <button type="submit" form="addForm"
+              class="rounded-2xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-black">
+        Enregistrer
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div id="editModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+  <div class="w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-xl">
+    <div class="flex items-center justify-between border-b border-slate-100 px-6 py-5">
+      <h2 class="text-xl font-bold text-slate-900">Modifier la transaction</h2>
+      <button type="button" onclick="closeEditModal()" class="text-slate-400 hover:text-slate-700">✕</button>
+    </div>
+
+    <div class="max-h-[70vh] overflow-y-auto px-6 py-5">
+      <form id="editForm" method="POST" action="{% url 'admin_dashboard:finance' %}" class="space-y-4">
+        {% csrf_token %}
+        <input type="hidden" name="transaction_id" id="edit_transaction_id">
+
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <label class="mb-2 block text-sm font-medium text-slate-700">Date</label>
+            <input type="date" id="edit_date" name="date" required
+                   class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none">
+          </div>
+
+          <div>
+            <label class="mb-2 block text-sm font-medium text-slate-700">Type</label>
+            <select id="edit_type" name="type" required
+                    class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none">
+              <option value="Income">Revenu</option>
+              <option value="Expense">Dépense</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="mb-2 block text-sm font-medium text-slate-700">Catégorie</label>
+            <input type="text" id="edit_category" name="category"
+                   class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none">
+          </div>
+
+          <div>
+            <label class="mb-2 block text-sm font-medium text-slate-700">Référence</label>
+            <input type="text" id="edit_ref" name="ref"
+                   class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none">
+          </div>
+
+          <div>
+            <label class="mb-2 block text-sm font-medium text-slate-700">Méthode</label>
+            <select id="edit_method" name="method"
+                    class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none">
+              <option value="Cash">Espèces</option>
+              <option value="Bank">Banque</option>
+              <option value="Card">Carte</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="mb-2 block text-sm font-medium text-slate-700">Statut</label>
+            <select id="edit_status" name="status"
+                    class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none">
+              <option value="Paid">Payée</option>
+              <option value="Pending">En attente</option>
+              <option value="Cancelled">Annulée</option>
+            </select>
+          </div>
+
+          <div class="md:col-span-2">
+            <label class="mb-2 block text-sm font-medium text-slate-700">Montant (DZD)</label>
+            <input type="number" id="edit_amount" name="amount" required step="0.01"
+                   class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none">
+          </div>
+
+          <div class="md:col-span-2">
+            <label class="mb-2 block text-sm font-medium text-slate-700">Note</label>
+            <textarea id="edit_note" name="note" rows="2"
+                      class="w-full resize-none rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none"></textarea>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div class="flex justify-end gap-3 border-t border-slate-100 px-6 py-4">
+      <button type="button" onclick="closeEditModal()"
+              class="rounded-2xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+        Annuler
+      </button>
+
+      <button type="submit" form="editForm"
+              class="rounded-2xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-black">
+        Enregistrer les modifications
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE MODAL -->
+<div id="deleteModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+  <div class="w-full max-w-md rounded-3xl bg-white p-6 shadow-xl">
+    <div class="flex items-center justify-between">
+      <h2 class="text-xl font-bold text-slate-900">Supprimer la transaction</h2>
+      <button type="button" onclick="closeDeleteModal()" class="text-slate-400 hover:text-slate-700">✕</button>
+    </div>
+
+    <div class="mt-4">
+      <p class="text-sm text-slate-600">
+        Êtes-vous sûr de vouloir supprimer la transaction
+        <span id="delete_transaction_ref" class="font-semibold text-slate-900"></span> ?
+      </p>
+      <p class="mt-2 text-sm text-red-500">Cette action est irréversible.</p>
+    </div>
+
+    <form id="deleteForm" method="POST" action="{% url 'admin_dashboard:finance' %}" class="mt-6 flex justify-end gap-3">
+      {% csrf_token %}
+      <input type="hidden" name="delete_id" id="delete_transaction_id_input">
+
+      <button type="button" onclick="closeDeleteModal()"
+              class="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+        Annuler
+      </button>
+
+      <button type="submit"
+              class="rounded-2xl bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600">
+        Supprimer
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- INVOICE MODAL -->
+<div id="invoiceModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+  <div class="w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-xl">
+    <div class="flex items-center justify-between border-b border-slate-100 px-6 py-5">
+      <h2 class="text-xl font-bold text-slate-900">Créer une facture étudiant</h2>
+      <button type="button" onclick="closeInvoiceModal()" class="text-slate-400 hover:text-slate-700">✕</button>
+    </div>
+
+    <div class="max-h-[70vh] overflow-y-auto px-6 py-5">
+      <form id="invoiceForm" method="POST" action="{% url 'admin_dashboard:finance' %}" class="space-y-4">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="create_invoice">
+
+        <div>
+          <label class="mb-2 block text-sm font-medium text-slate-700">Étudiant</label>
+          <select name="student_id" required
+                  class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none">
+            <option value="">Choisir un étudiant</option>
+            {% for student in students %}
+              <option value="{{ student.id }}">
+                {{ student.first_name }} {{ student.last_name }} — {{ student.formation.title }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label class="mb-2 block text-sm font-medium text-slate-700">Montant total (DZD)</label>
+          <input type="number" name="amount" step="0.01" required
+                 placeholder="Ex : 25000"
+                 class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none">
+        </div>
+
+        <div>
+          <label class="mb-2 block text-sm font-medium text-slate-700">Date limite de paiement</label>
+          <input type="date" name="due_date" required
+                 class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none">
+        </div>
+      </form>
+    </div>
+
+    <div class="flex justify-end gap-3 border-t border-slate-100 px-6 py-4">
+      <button type="button" onclick="closeInvoiceModal()"
+              class="rounded-2xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+        Annuler
+      </button>
+
+      <button type="submit" form="invoiceForm"
+              class="rounded-2xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">
+        Créer la facture
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- PAYMENT MODAL -->
+<div id="paymentModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+  <div class="w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-xl">
+    <div class="flex items-center justify-between border-b border-slate-100 px-6 py-5">
+      <h2 class="text-xl font-bold text-slate-900">Ajouter un paiement</h2>
+      <button type="button" onclick="closePaymentModal()" class="text-slate-400 hover:text-slate-700">✕</button>
+    </div>
+
+    <div class="max-h-[70vh] overflow-y-auto px-6 py-5">
+     <div class="mb-4 rounded-2xl bg-slate-50 p-4">
+  <p class="text-sm text-slate-500">Étudiant</p>
+  <p id="paymentStudentName" class="font-semibold text-slate-900"></p>
+
+  <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+    <div class="rounded-2xl border border-slate-200 bg-white p-3">
+      <p class="text-xs text-slate-500">Total</p>
+      <p class="mt-1 text-sm font-bold text-slate-900">
+        <span id="paymentTotal">0</span> DZD
+      </p>
+    </div>
+
+    <div class="rounded-2xl border border-slate-200 bg-white p-3">
+      <p class="text-xs text-slate-500">Déjà payé</p>
+      <p class="mt-1 text-sm font-bold text-emerald-600">
+        <span id="paymentPaid">0</span> DZD
+      </p>
+    </div>
+
+    <div class="rounded-2xl border border-slate-200 bg-white p-3">
+      <p class="text-xs text-slate-500">Reste</p>
+      <p class="mt-1 text-sm font-bold text-rose-600">
+        <span id="paymentRemaining">0</span> DZD
+      </p>
+    </div>
+  </div>
+</div>
+      <form id="paymentForm" method="POST" action="{% url 'admin_dashboard:finance' %}" class="space-y-4">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="add_invoice_payment">
+        <input type="hidden" name="invoice_id" id="payment_invoice_id">
+
+        <div>
+          <label class="mb-2 block text-sm font-medium text-slate-700">Montant payé (DZD)</label>
+          <input type="number" name="amount" step="0.01" required
+                 class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none">
+        </div>
+
+        <div>
+          <label class="mb-2 block text-sm font-medium text-slate-700">Méthode</label>
+          <select name="method"
+                  class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none">
+            <option value="">Choisir une méthode</option>
+            <option value="Cash">Espèces</option>
+            <option value="Bank">Banque</option>
+            <option value="Card">Carte</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="mb-2 block text-sm font-medium text-slate-700">Note</label>
+          <textarea name="note" rows="2"
+                    class="w-full resize-none rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none"></textarea>
+        </div>
+      </form>
+    </div>
+
+    <div class="flex justify-end gap-3 border-t border-slate-100 px-6 py-4">
+      <button type="button" onclick="closePaymentModal()"
+              class="rounded-2xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+        Annuler
+      </button>
+
+      <button type="submit" form="paymentForm"
+              class="rounded-2xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700">
+        Enregistrer paiement
+      </button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+{{ chart_labels|json_script:"chart-labels" }}
+{{ income_data|json_script:"income-data" }}
+{{ expense_data|json_script:"expense-data" }}
+
+<script>
+const ctx = document.getElementById("financeChart");
+if (ctx) {
+  new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: JSON.parse(document.getElementById("chart-labels").textContent),
+      datasets: [
+        {
+          label: "Revenu",
+          data: JSON.parse(document.getElementById("income-data").textContent),
+          backgroundColor: "rgba(16, 185, 129, 0.75)",
+          borderRadius: 8
+        },
+        {
+          label: "Dépense",
+          data: JSON.parse(document.getElementById("expense-data").textContent),
+          backgroundColor: "rgba(239, 68, 68, 0.75)",
+          borderRadius: 8
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: "top" } },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: { callback: v => v + " DZD" }
+        }
+      }
+    }
+  });
+}
+
+function openAddModal() {
+  document.getElementById("addModal").classList.remove("hidden");
+  document.getElementById("addModal").classList.add("flex");
+  document.body.style.overflow = "hidden";
+}
+
+function closeAddModal() {
+  document.getElementById("addModal").classList.add("hidden");
+  document.getElementById("addModal").classList.remove("flex");
+  document.body.style.overflow = "";
+
+  const form = document.getElementById("addForm");
+  if (form) form.reset();
+}
+
+function openEditModal(button) {
+  const modal = document.getElementById("editModal");
+  modal.classList.remove("hidden");
+  modal.classList.add("flex");
+  document.body.style.overflow = "hidden";
+
+  document.getElementById("edit_transaction_id").value = button.dataset.id;
+  document.getElementById("edit_date").value = button.dataset.date;
+  document.getElementById("edit_type").value = button.dataset.type;
+  document.getElementById("edit_category").value = button.dataset.category;
+  document.getElementById("edit_ref").value = button.dataset.ref;
+  document.getElementById("edit_method").value = button.dataset.method;
+  document.getElementById("edit_status").value = button.dataset.status;
+  document.getElementById("edit_amount").value = button.dataset.amount;
+  document.getElementById("edit_note").value = button.dataset.note;
+}
+
+function closeEditModal() {
+  document.getElementById("editModal").classList.add("hidden");
+  document.getElementById("editModal").classList.remove("flex");
+  document.body.style.overflow = "";
+}
+
+function openDeleteModal(button) {
+  const modal = document.getElementById("deleteModal");
+  modal.classList.remove("hidden");
+  modal.classList.add("flex");
+  document.body.style.overflow = "hidden";
+
+  document.getElementById("delete_transaction_id_input").value = button.dataset.id;
+  document.getElementById("delete_transaction_ref").textContent = button.dataset.ref;
+}
+
+function closeDeleteModal() {
+  document.getElementById("deleteModal").classList.add("hidden");
+  document.getElementById("deleteModal").classList.remove("flex");
+  document.body.style.overflow = "";
+}
+
+function openInvoiceModal() {
+  document.getElementById("invoiceModal").classList.remove("hidden");
+  document.getElementById("invoiceModal").classList.add("flex");
+  document.body.style.overflow = "hidden";
+}
+
+function closeInvoiceModal() {
+  document.getElementById("invoiceModal").classList.add("hidden");
+  document.getElementById("invoiceModal").classList.remove("flex");
+  document.body.style.overflow = "";
+
+  const form = document.getElementById("invoiceForm");
+  if (form) form.reset();
+}
+
+function openPaymentModal(button) {
+  document.getElementById("paymentModal").classList.remove("hidden");
+  document.getElementById("paymentModal").classList.add("flex");
+  document.body.style.overflow = "hidden";
+
+  const total = parseFloat(button.dataset.total || "0");
+  const paid = parseFloat(button.dataset.paid || "0");
+  const remaining = Math.max(total - paid, 0);
+
+  document.getElementById("payment_invoice_id").value = button.dataset.invoiceId;
+  document.getElementById("paymentStudentName").textContent = button.dataset.student;
+
+  document.getElementById("paymentTotal").textContent = total.toFixed(2);
+  document.getElementById("paymentPaid").textContent = paid.toFixed(2);
+  document.getElementById("paymentRemaining").textContent = remaining.toFixed(2);
+}
+
+function closePaymentModal() {
+  document.getElementById("paymentModal").classList.add("hidden");
+  document.getElementById("paymentModal").classList.remove("flex");
+  document.body.style.overflow = "";
+
+  const form = document.getElementById("paymentForm");
+  if (form) form.reset();
+}
+
+["addModal", "editModal", "deleteModal", "invoiceModal", "paymentModal"].forEach(id => {
+  const el = document.getElementById(id);
+  if (!el) return;
+
+  el.addEventListener("click", function(e) {
+    if (e.target === this) {
+      if (id === "addModal") closeAddModal();
+      if (id === "editModal") closeEditModal();
+      if (id === "deleteModal") closeDeleteModal();
+      if (id === "invoiceModal") closeInvoiceModal();
+      if (id === "paymentModal") closePaymentModal();
+    }
+  });
+});
+
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") {
+    closeAddModal();
+    closeEditModal();
+    closeDeleteModal();
+    closeInvoiceModal();
+    closePaymentModal();
+  }
+});
+</script>
+{% endblock %}

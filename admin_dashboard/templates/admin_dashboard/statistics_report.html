@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Rapport Statistique</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+      color: #1e293b;
+    }
+
+    h1, h2 {
+      margin: 0;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .header h1 {
+      font-size: 26px;
+    }
+
+    .header p {
+      color: #64748b;
+      font-size: 14px;
+    }
+
+    .section {
+      margin-top: 30px;
+    }
+
+    .section h2 {
+      font-size: 18px;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 6px;
+      margin-bottom: 10px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .box {
+      border: 1px solid #e2e8f0;
+      padding: 10px;
+      border-radius: 6px;
+    }
+
+    .box p {
+      margin: 4px 0;
+    }
+
+    .footer {
+      margin-top: 40px;
+      text-align: center;
+      font-size: 12px;
+      color: #64748b;
+    }
+
+    @media print {
+      button {
+        display: none;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- HEADER -->
+  <div class="header">
+    <h1>{{ school_settings.school_name|default:"Centre de formation" }}</h1>
+    <p>Rapport statistique</p>
+    <p>Date : {{ today|date:"d/m/Y" }}</p>
+  </div>
+
+  <!-- GENERAL -->
+  <div class="section">
+    <h2>Informations générales</h2>
+    <div class="grid">
+      <div class="box"><p>Étudiants</p><strong>{{ total_students }}</strong></div>
+      <div class="box"><p>Employés</p><strong>{{ total_employees }}</strong></div>
+      <div class="box"><p>Formations</p><strong>{{ total_formations }}</strong></div>
+      <div class="box"><p>Séances actives</p><strong>{{ total_sessions }}</strong></div>
+    </div>
+  </div>
+
+  <!-- ATTENDANCE -->
+  <div class="section">
+    <h2>Présence</h2>
+    <div class="grid">
+      <div class="box"><p>Présents</p><strong>{{ present_count }}</strong></div>
+      <div class="box"><p>Retards</p><strong>{{ late_count }}</strong></div>
+      <div class="box"><p>Absences</p><strong>{{ absent_count }}</strong></div>
+      <div class="box"><p>Taux de présence</p><strong>{{ attendance_rate }}%</strong></div>
+    </div>
+  </div>
+
+  <!-- FINANCE -->
+  <div class="section">
+    <h2>Finance</h2>
+    <div class="grid">
+      <div class="box"><p>Revenus</p><strong>{{ total_revenue }} DZD</strong></div>
+      <div class="box"><p>Dépenses</p><strong>{{ total_expense }} DZD</strong></div>
+      <div class="box"><p>Bénéfice</p><strong>{{ total_profit }} DZD</strong></div>
+    </div>
+  </div>
+
+  <!-- INVOICES -->
+  <div class="section">
+    <h2>Facturation</h2>
+    <div class="grid">
+      <div class="box"><p>Non payées</p><strong>{{ unpaid_invoices }}</strong></div>
+      <div class="box"><p>Partielles</p><strong>{{ partial_invoices }}</strong></div>
+      <div class="box"><p>Payées</p><strong>{{ paid_invoices }}</strong></div>
+      <div class="box"><p>En retard</p><strong>{{ overdue_invoices }}</strong></div>
+    </div>
+  </div>
+
+  <!-- PRINT BUTTON -->
+  <div style="margin-top: 30px; text-align: center;">
+    <button onclick="window.print()" style="padding:10px 20px; font-size:14px;">
+      Imprimer
+    </button>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    Généré automatiquement par School Manager
+  </div>
+
+</body>
+</html>

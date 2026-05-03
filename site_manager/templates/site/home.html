@@ -1,0 +1,229 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block title %}Accueil{% endblock %}
+
+{% block content %}
+<section class="mx-auto max-w-6xl px-4">
+  <!-- HERO -->
+  <div class="grid items-center gap-10 py-8 lg:grid-cols-2">
+    <div>
+      <h1 class="text-3xl font-extrabold leading-tight sm:text-4xl"> {% if public_school_settings.slogan %} {{ public_school_settings.slogan }} {% else %} Développez votre <span class="text-pink-500">Potentiel Culinaire</span> Grâce à une formation professionnelle {% endif %} </h1>
+
+      <p class="mt-4 max-w-lg text-sm leading-6 text-slate-600"> {% if public_school_settings.description %} {{ public_school_settings.description }} {% else %} Une formation culinaire pratique pour adultes, encadrée par des chefs expérimentés. Apprenez les techniques essentielles, réalisez des recettes modernes et développez une vraie maîtrise en cuisine. {% endif %} </p>
+
+      <div class="mt-6 flex items-center gap-3">
+        <a href="#program-section" class="rounded-full bg-slate-800 px-5 py-2.5 text-sm font-semibold text-white hover:bg-slate-900">
+          Découvrir nos formations
+        </a>
+        <a href="{% url 'site_manager:contact' %}" class="rounded-full bg-pink-400 px-5 py-2.5 text-sm font-semibold text-white hover:bg-pink-500">
+          Nous contacter
+        </a>
+      </div>
+    </div>
+
+    <div class="relative">
+      <div class="absolute -right-8 -top-6 h-64 w-64 rounded-full bg-pink-100 blur-2xl"></div>
+
+      <div class="relative mx-auto w-full max-w-md">
+        <div class="relative aspect-square rounded-full bg-white shadow-lg ring-8 ring-white">
+          <img
+            src="{% static 'site_manager/images/chef.png' %}"
+            alt="Chef"
+            class="h-full w-full rounded-full object-cover"
+          />
+        </div>
+
+        <div class="absolute left-2 top-10 rounded-2xl bg-white/90 px-4 py-2 shadow-md ring-1 ring-slate-100">
+          <div class="flex items-center gap-2">
+            <span class="grid h-8 w-8 place-items-center rounded-xl bg-pink-100">👥</span>
+            <div>
+              <div class="text-sm font-extrabold">2K+</div>
+              <div class="text-[11px] text-slate-500">stagiaires</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="absolute right-0 top-20 rounded-2xl bg-white/90 px-4 py-2 shadow-md ring-1 ring-slate-100">
+          <div class="flex items-center gap-2">
+            <span class="grid h-8 w-8 place-items-center rounded-xl bg-pink-100">🍰</span>
+            <div>
+              <div class="text-sm font-extrabold">1K+</div>
+              <div class="text-[11px] text-slate-500">recettes</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="absolute -bottom-4 left-10 h-3 w-3 rounded-full bg-slate-900"></div>
+        <div class="absolute -bottom-10 right-24 h-3 w-3 rounded-full bg-pink-400"></div>
+      </div>
+    </div>
+  </div>
+
+    <!-- WHY CHOOSE US -->
+  <div class="py-10">
+    <div class="max-w-2xl">
+      <h2 class="text-2xl font-extrabold text-slate-900">Pourquoi choisir notre centre ?</h2>
+      <p class="mt-3 text-sm leading-7 text-slate-600">
+        Nous proposons un apprentissage concret, progressif et encadré, pensé pour les passionnés
+        comme pour les futurs professionnels.
+      </p>
+    </div>
+
+    <div class="mt-8 grid gap-6 md:grid-cols-3">
+      <div class="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-pink-100 text-xl">🍳</div>
+        <h3 class="mt-5 text-lg font-bold text-slate-900">Apprentissage pratique</h3>
+        <p class="mt-2 text-sm leading-7 text-slate-600">
+          Des formations axées sur la pratique pour acquérir des compétences applicables rapidement.
+        </p>
+      </div>
+
+      <div class="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-pink-100 text-xl">👩‍🍳</div>
+        <h3 class="mt-5 text-lg font-bold text-slate-900">Chefs expérimentés</h3>
+        <p class="mt-2 text-sm leading-7 text-slate-600">
+          Un accompagnement par des professionnels du métier pour progresser dans les bonnes conditions.
+        </p>
+      </div>
+
+      <div class="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-pink-100 text-xl">🏆</div>
+        <h3 class="mt-5 text-lg font-bold text-slate-900">Parcours valorisant</h3>
+        <p class="mt-2 text-sm leading-7 text-slate-600">
+          Développez une vraie maîtrise technique et gagnez en confiance pour vos projets culinaires.
+        </p>
+      </div>
+    </div>
+  </div>
+ <!-- NOS FORMATIONS -->
+  <div id="program-section" class="py-10">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <h2 class="text-2xl font-extrabold text-slate-900">Nos formations</h2>
+        <p class="mt-2 max-w-2xl text-sm leading-7 text-slate-600">
+          Découvrez des programmes conçus pour développer vos compétences en cuisine, pâtisserie et techniques professionnelles.
+        </p>
+      </div>
+
+      <a href="{% url 'site_manager:contact' %}"
+         class="text-sm font-semibold text-pink-500 transition hover:text-pink-600">
+        Besoin d’aide pour choisir ?
+      </a>
+    </div>
+
+    <div class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      {% for f in formations %}
+        {% if f.slug %}
+          <a href="{% url 'site_manager:formation_detail' f.slug %}"
+             class="group block overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+            <article>
+              <div class="relative h-52 overflow-hidden">
+                {% if f.image %}
+                  <img src="{{ f.image.url }}"
+                       class="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                       alt="{{ f.title }}" />
+                {% else %}
+                  <div class="flex h-full w-full items-center justify-center bg-slate-100 text-4xl">
+                    🍽️
+                  </div>
+                {% endif %}
+
+                <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/55 to-transparent p-4">
+                  {% if f.category %}
+                    <span class="inline-flex rounded-full bg-white/90 px-3 py-1 text-[11px] font-bold text-slate-800">
+                      {{ f.category }}
+                    </span>
+                  {% endif %}
+                </div>
+              </div>
+
+              <div class="p-5">
+                <div class="flex items-start justify-between gap-3">
+                  <h3 class="text-lg font-extrabold text-slate-900">{{ f.title }}</h3>
+                  <span class="rounded-full bg-yellow-300 px-3 py-1 text-[11px] font-bold text-slate-900 shadow-sm">
+                    Détails
+                  </span>
+                </div>
+
+                {% if f.short_description %}
+                  <p class="mt-3 line-clamp-2 text-sm leading-6 text-slate-600">
+                    {{ f.short_description }}
+                  </p>
+                {% endif %}
+
+                <div class="mt-4 space-y-2 text-sm text-slate-500">
+                  {% if f.chef_name %}
+                    <p><span class="font-semibold text-slate-700">Chef :</span> {{ f.chef_name }}</p>
+                  {% endif %}
+                  {% if f.duration %}
+                    <p><span class="font-semibold text-slate-700">Durée :</span> {{ f.duration }}</p>
+                  {% endif %}
+                </div>
+
+                {% if f.price %}
+                  <div class="mt-5 flex items-center justify-between border-t border-slate-100 pt-4">
+                    <span class="text-sm text-slate-500">À partir de</span>
+                    <span class="text-lg font-extrabold text-pink-500">{{ f.price }} DZD</span>
+                  </div>
+                {% endif %}
+              </div>
+            </article>
+          </a>
+        {% else %}
+          <article class="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm opacity-70">
+            <div class="relative h-52">
+              {% if f.image %}
+                <img src="{{ f.image.url }}" class="h-full w-full object-cover" alt="{{ f.title }}" />
+              {% else %}
+                <div class="flex h-full w-full items-center justify-center bg-slate-100 text-4xl">
+                  🍽️
+                </div>
+              {% endif %}
+            </div>
+
+            <div class="p-5">
+              <h3 class="text-lg font-extrabold text-slate-900">{{ f.title }}</h3>
+              <p class="mt-2 text-sm text-slate-500">Lien indisponible pour cette formation.</p>
+            </div>
+          </article>
+        {% endif %}
+      {% empty %}
+        <div class="rounded-[2rem] border border-dashed border-slate-300 bg-white p-10 text-center sm:col-span-2 lg:col-span-3">
+          <p class="text-base font-semibold text-slate-700">Aucune formation publiée pour le moment.</p>
+          <p class="mt-2 text-sm text-slate-500">Revenez bientôt pour découvrir nos prochaines sessions.</p>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+
+ 
+
+   <!-- CTA -->
+  <div class="pb-16">
+    <div class="overflow-hidden rounded-[2rem] bg-slate-900 px-6 py-10 text-white md:px-10">
+      <div class="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+        <div class="max-w-2xl">
+          <h2 class="text-2xl font-extrabold">Prêt(e) à commencer votre parcours culinaire ?</h2>
+          <p class="mt-3 text-sm leading-7 text-slate-300">
+            Contactez-nous pour choisir la formation la plus adaptée à votre niveau et à vos objectifs.
+          </p>
+        </div>
+
+        <div class="flex flex-wrap gap-3">
+          <a href="#program-section"
+             class="rounded-full bg-pink-500 px-6 py-3 text-sm font-semibold text-white transition hover:bg-pink-600">
+            Voir les formations
+          </a>
+          <a href="{% url 'site_manager:contact' %}"
+             class="rounded-full border border-white/20 bg-white/10 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/20">
+            Nous contacter
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</section>
+{% endblock %}

@@ -1,0 +1,200 @@
+{% extends "site/base.html" %}
+{% load static %}
+{% block title %}{{ formation.title }}{% endblock %}
+
+{% block content %}
+<section class="mx-auto max-w-6xl px-4 py-10">
+  <!-- Top hero -->
+  <div class="grid gap-10 lg:grid-cols-2 lg:items-start">
+    <div>
+      {% if formation.image %}
+        <img
+          src="{{ formation.image.url }}"
+          alt="{{ formation.title }}"
+          class="h-[420px] w-full rounded-[2rem] object-cover shadow-lg ring-1 ring-slate-200"
+        >
+      {% else %}
+        <div class="flex h-[420px] w-full items-center justify-center rounded-[2rem] bg-slate-100 text-5xl text-slate-400 shadow-sm ring-1 ring-slate-200">
+          🍽️
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="lg:pt-4">
+      <div class="flex flex-wrap gap-2">
+        {% if formation.category %}
+          <span class="rounded-full bg-pink-100 px-4 py-1.5 text-sm font-semibold text-pink-700">
+            {{ formation.category }}
+          </span>
+        {% endif %}
+
+        {% if formation.duration %}
+          <span class="rounded-full bg-slate-100 px-4 py-1.5 text-sm font-semibold text-slate-700">
+            {{ formation.duration }}
+          </span>
+        {% endif %}
+
+        {% if formation.is_published %}
+          <span class="rounded-full bg-emerald-100 px-4 py-1.5 text-sm font-semibold text-emerald-700">
+            Disponible
+          </span>
+        {% endif %}
+      </div>
+
+      <h1 class="mt-5 text-4xl font-extrabold leading-tight text-slate-900 sm:text-5xl">
+        {{ formation.title }}
+      </h1>
+
+      {% if formation.short_description %}
+        <p class="mt-5 max-w-2xl text-lg leading-8 text-slate-600">
+          {{ formation.short_description }}
+        </p>
+      {% endif %}
+
+      <div class="mt-8 grid gap-4 sm:grid-cols-2">
+        {% if formation.price %}
+          <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p class="text-sm font-medium text-slate-500">Prix</p>
+            <p class="mt-2 text-2xl font-bold text-slate-900">{{ formation.price }} DH</p>
+          </div>
+        {% endif %}
+
+        {% if formation.chef_name %}
+          <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p class="text-sm font-medium text-slate-500">Encadrement</p>
+            <p class="mt-2 text-lg font-bold text-slate-900">{{ formation.chef_name }}</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Main content -->
+  <div class="mt-14 grid gap-10 lg:grid-cols-3">
+    <!-- Left content -->
+    <div class="space-y-8 lg:col-span-2">
+      <div class="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm">
+        <h2 class="text-2xl font-bold text-slate-900">À propos de cette formation</h2>
+
+        {% if formation.description %}
+          <div class="mt-5 space-y-4 text-base leading-8 text-slate-600">
+            {{ formation.description|linebreaks }}
+          </div>
+        {% else %}
+          <p class="mt-5 text-base leading-8 text-slate-500">
+            Les détails complets de cette formation seront bientôt disponibles.
+          </p>
+        {% endif %}
+      </div>
+
+      <div class="grid gap-6 sm:grid-cols-2">
+        <div class="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+          <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-pink-100 text-xl">
+            ⏱️
+          </div>
+          <h3 class="text-lg font-bold text-slate-900">Durée</h3>
+          <p class="mt-2 text-sm leading-7 text-slate-600">
+            {{ formation.duration|default:"À définir" }}
+          </p>
+        </div>
+
+        <div class="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+          <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-pink-100 text-xl">
+            👨‍🍳
+          </div>
+          <h3 class="text-lg font-bold text-slate-900">Encadrement</h3>
+          <p class="mt-2 text-sm leading-7 text-slate-600">
+            {{ formation.chef_name|default:"Équipe pédagogique" }}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right sticky form -->
+    <div>
+      <div class="sticky top-24 rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm">
+        <h2 class="text-2xl font-bold text-slate-900">Demande d'inscription</h2>
+        <p class="mt-2 text-sm leading-6 text-slate-500">
+          Remplissez ce formulaire pour envoyer votre demande. Notre équipe vous contactera après validation.
+        </p>
+
+        {% if success %}
+          <div class="mt-6 rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
+            <div class="flex items-start gap-3">
+              <div class="mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
+                ✓
+              </div>
+              <div>
+                <h3 class="font-bold text-emerald-800">Demande envoyée avec succès</h3>
+                <p class="mt-1 text-sm leading-6 text-emerald-700">
+                  Votre demande a bien été enregistrée. Nous vous contacterons bientôt.
+                </p>
+              </div>
+            </div>
+          </div>
+        {% else %}
+          <form method="POST" class="mt-6 space-y-4">
+            {% csrf_token %}
+
+            <div>
+              <label class="mb-2 block text-sm font-medium text-slate-700">Prénom</label>
+              <input
+                type="text"
+                name="first_name"
+                required
+                class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-pink-400 focus:ring-4 focus:ring-pink-100"
+              >
+            </div>
+
+            <div>
+              <label class="mb-2 block text-sm font-medium text-slate-700">Nom</label>
+              <input
+                type="text"
+                name="last_name"
+                required
+                class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-pink-400 focus:ring-4 focus:ring-pink-100"
+              >
+            </div>
+
+            <div>
+              <label class="mb-2 block text-sm font-medium text-slate-700">Téléphone</label>
+              <input
+                type="text"
+                name="phone"
+                required
+                class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-pink-400 focus:ring-4 focus:ring-pink-100"
+              >
+            </div>
+
+            <div>
+              <label class="mb-2 block text-sm font-medium text-slate-700">Email</label>
+              <input
+                type="email"
+                name="email"
+                class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-pink-400 focus:ring-4 focus:ring-pink-100"
+              >
+            </div>
+
+            <div>
+              <label class="mb-2 block text-sm font-medium text-slate-700">Message</label>
+              <textarea
+                name="message"
+                rows="4"
+                class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-pink-400 focus:ring-4 focus:ring-pink-100"
+                placeholder="Parlez-nous un peu de votre motivation..."
+              ></textarea>
+            </div>
+
+            <button
+              type="submit"
+              class="w-full rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
+            >
+              Envoyer ma demande
+            </button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

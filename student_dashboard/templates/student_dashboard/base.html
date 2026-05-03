@@ -1,0 +1,113 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block title %}{% block student_title %}Espace étudiant{% endblock %}{% endblock %}
+
+{% block content %}
+<section class="min-h-screen bg-slate-50">
+  <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+
+    <!-- Student Header -->
+    <div class="mb-8 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+      <div class="flex flex-col gap-6 p-6 md:flex-row md:items-center md:justify-between md:p-8">
+        <div class="flex items-center gap-4">
+          <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100">
+            <span class="text-2xl">👩‍🎓</span>
+          </div>
+
+          <div>
+            <p class="text-sm font-medium text-slate-500">Espace étudiant</p>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 md:text-3xl">
+              {% block student_page_heading %}
+                Bonjour, {{ student.first_name }}
+              {% endblock %}
+            </h1>
+
+            <div class="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-500">
+              {% if student.formation %}
+                <span>{{ student.formation.title }}</span>
+              {% endif %}
+              {% if student.student_code %}
+                <span class="h-1 w-1 rounded-full bg-slate-300"></span>
+                <span>{{ student.student_code }}</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap gap-3">
+          <a href="{% url 'student_dashboard:timetable' %}"
+             class="inline-flex items-center justify-center rounded-xl bg-slate-900 px-5 py-3 text-sm font-medium text-white transition hover:bg-slate-800">
+            Voir mon emploi du temps
+          </a>
+
+          <a href="{% url 'student_dashboard:logout' %}"
+             class="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100">
+            Déconnexion
+          </a>
+        </div>
+      </div>
+
+      <!-- Student Nav -->
+      <div class="border-t border-slate-100 px-4 py-3 md:px-8">
+        <div class="flex flex-wrap gap-2">
+
+          <a href="{% url 'student_dashboard:home' %}"
+             class="rounded-xl px-4 py-2 text-sm font-medium transition
+             {% if active_page == 'home' %}
+               bg-slate-900 text-white
+             {% else %}
+               text-slate-600 hover:bg-slate-100 hover:text-slate-900
+             {% endif %}">
+            Aperçu
+          </a>
+
+          <a href="{% url 'student_dashboard:timetable' %}"
+             class="rounded-xl px-4 py-2 text-sm font-medium transition
+             {% if active_page == 'timetable' %}
+               bg-slate-900 text-white
+             {% else %}
+               text-slate-600 hover:bg-slate-100 hover:text-slate-900
+             {% endif %}">
+            Emploi du temps
+          </a>
+
+          <a href="{% url 'student_dashboard:attendance' %}"
+             class="rounded-xl px-4 py-2 text-sm font-medium transition
+             {% if active_page == 'attendance' %}
+               bg-slate-900 text-white
+             {% else %}
+               text-slate-600 hover:bg-slate-100 hover:text-slate-900
+             {% endif %}">
+            Présence
+          </a>
+
+          <a href="{% url 'student_dashboard:payments' %}"
+             class="rounded-xl px-4 py-2 text-sm font-medium transition
+             {% if active_page == 'payments' %}
+               bg-slate-900 text-white
+             {% else %}
+               text-slate-600 hover:bg-slate-100 hover:text-slate-900
+             {% endif %}">
+            Paiements
+          </a>
+
+          <a href="{% url 'student_dashboard:notifications' %}"
+             class="rounded-xl px-4 py-2 text-sm font-medium transition
+             {% if active_page == 'notifications' %}
+               bg-slate-900 text-white
+             {% else %}
+               text-slate-600 hover:bg-slate-100 hover:text-slate-900
+             {% endif %}">
+            Notifications
+          </a>
+
+        </div>
+      </div>
+    </div>
+
+    {% block student_content %}{% endblock %}
+
+  </div>
+</section>
+{% endblock %}

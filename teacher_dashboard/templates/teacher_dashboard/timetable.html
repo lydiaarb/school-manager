@@ -1,0 +1,211 @@
+{% extends "teacher_dashboard/base.html" %}
+
+{% block title %}Mon planning{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <!-- Header -->
+  <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+    <div>
+      <h1 class="text-3xl font-bold tracking-tight text-slate-900">Mon planning</h1>
+      <p class="mt-1 text-base text-slate-500">
+        Consultez vos séances et ouvrez la présence directement depuis le planning.
+      </p>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <p class="text-sm font-medium text-slate-500">Mes séances</p>
+      <h2 class="mt-3 text-4xl font-bold text-slate-900">{{ total_sessions|default:"0" }}</h2>
+      <p class="mt-2 text-sm text-slate-500">Séances affectées à votre compte</p>
+    </div>
+
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <p class="text-sm font-medium text-slate-500">Enseignant</p>
+      <h2 class="mt-3 text-2xl font-bold text-slate-900">
+        {{ teacher.first_name }} {{ teacher.last_name }}
+      </h2>
+      <p class="mt-2 text-sm text-slate-500">Compte connecté</p>
+    </div>
+
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <p class="text-sm font-medium text-slate-500">Action principale</p>
+      <h2 class="mt-3 text-2xl font-bold text-emerald-600">Présence QR</h2>
+      <p class="mt-2 text-sm text-slate-500">Accessible depuis chaque séance</p>
+    </div>
+  </div>
+
+  <!-- Filter -->
+  <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+    <form method="get" class="grid gap-3 md:grid-cols-12">
+      <div class="md:col-span-10">
+        <select name="day"
+                class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-200">
+          <option value="">Tous les jours</option>
+          {% for day in days %}
+            <option value="{{ day.value }}" {% if request.GET.day == day.value %}selected{% endif %}>
+              {{ day.label }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="md:col-span-2 flex gap-2">
+        <button type="submit"
+                class="flex-1 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">
+          Filtrer
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Sessions -->
+  <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+    <div class="border-b border-slate-100 px-6 py-5">
+      <h2 class="text-xl font-bold text-slate-900">Séances planifiées</h2>
+      <p class="mt-1 text-sm text-slate-500">
+        Cliquez sur une séance pour afficher les détails et ouvrir la présence.
+      </p>
+    </div>
+
+    <div class="grid gap-4 p-6 md:grid-cols-2 xl:grid-cols-3">
+      {% for session in sessions %}
+        <button
+          type="button"
+          onclick="openSessionModal(this)"
+          class="text-left rounded-3xl border border-slate-200 bg-slate-50 p-5 shadow-sm transition hover:-translate-y-0.5 hover:bg-white hover:shadow-md"
+          data-title="{{ session.title }}"
+          data-day="{{ session.get_day_display }}"
+          data-time="{{ session.time_label }}"
+          data-formation="{{ session.formation.title }}"
+          data-room="{% if session.room %}{{ session.room.name }}{% else %}Non définie{% endif %}"
+         data-attendance-url="{% url 'teacher_dashboard:attendance_checkin' session.id %}"
+        >
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <p class="text-base font-bold text-slate-900">{{ session.title }}</p>
+              <p class="mt-1 text-sm text-slate-500">
+                {{ session.get_day_display }} — {{ session.time_label }}
+              </p>
+            </div>
+
+            <span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">
+              Présence
+            </span>
+          </div>
+
+          <div class="mt-4 space-y-2 text-sm">
+            <p class="text-slate-600">
+              Formation :
+              <span class="font-semibold text-slate-800">{{ session.formation.title }}</span>
+            </p>
+
+            {% if session.room %}
+              <p class="text-slate-600">
+                Salle :
+                <span class="font-semibold text-slate-800">{{ session.room.name }}</span>
+              </p>
+            {% endif %}
+          </div>
+        </button>
+      {% empty %}
+        <div class="col-span-full rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-6 py-14 text-center">
+          <p class="font-semibold text-slate-700">Aucune séance trouvée</p>
+          <p class="mt-1 text-sm text-slate-500">
+            Aucune séance n’est affectée à votre compte pour le moment.
+          </p>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Session Modal -->
+<div id="sessionModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4">
+  <div class="w-full max-w-xl rounded-3xl bg-white p-6 shadow-xl">
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <h2 class="text-xl font-bold text-slate-900">Détail de la séance</h2>
+        <p class="mt-1 text-sm text-slate-500">Informations de la séance sélectionnée.</p>
+      </div>
+
+      <button type="button" onclick="closeSessionModal()" class="text-slate-400 hover:text-slate-700">
+        ✕
+      </button>
+    </div>
+
+    <div class="mt-6 grid gap-4 sm:grid-cols-2">
+      <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Titre</p>
+        <p id="modalTitle" class="mt-2 font-semibold text-slate-900">—</p>
+      </div>
+
+      <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Jour</p>
+        <p id="modalDay" class="mt-2 font-semibold text-slate-900">—</p>
+      </div>
+
+      <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Horaire</p>
+        <p id="modalTime" class="mt-2 font-semibold text-slate-900">—</p>
+      </div>
+
+      <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Salle</p>
+        <p id="modalRoom" class="mt-2 font-semibold text-slate-900">—</p>
+      </div>
+
+      <div class="sm:col-span-2 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Formation</p>
+        <p id="modalFormation" class="mt-2 font-semibold text-slate-900">—</p>
+      </div>
+    </div>
+
+    <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+      <button type="button"
+              onclick="closeSessionModal()"
+              class="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+        Fermer
+      </button>
+
+      <a id="attendanceLink"
+         href="#"
+         class="rounded-2xl bg-emerald-600 px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-emerald-700">
+        Ouvrir la présence
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openSessionModal(button) {
+  document.getElementById("modalTitle").textContent = button.dataset.title || "—";
+  document.getElementById("modalDay").textContent = button.dataset.day || "—";
+  document.getElementById("modalTime").textContent = button.dataset.time || "—";
+  document.getElementById("modalFormation").textContent = button.dataset.formation || "—";
+  document.getElementById("modalRoom").textContent = button.dataset.room || "—";
+  document.getElementById("attendanceLink").href = button.dataset.attendanceUrl || "#";
+
+  const modal = document.getElementById("sessionModal");
+  modal.classList.remove("hidden");
+  modal.classList.add("flex");
+}
+
+function closeSessionModal() {
+  const modal = document.getElementById("sessionModal");
+  modal.classList.remove("flex");
+  modal.classList.add("hidden");
+}
+
+document.addEventListener("keydown", function(event) {
+  if (event.key === "Escape") {
+    closeSessionModal();
+  }
+});
+</script>
+{% endblock %}

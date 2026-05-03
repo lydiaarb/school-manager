@@ -1,0 +1,163 @@
+{% extends "student_dashboard/base.html" %}
+
+{% block student_title %}Mes paiements{% endblock %}
+
+{% block student_page_heading %}
+Paiements
+{% endblock %}
+
+{% block student_content %}
+
+<div class="space-y-6">
+
+  <!-- Stats -->
+  <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <p class="text-sm font-medium text-slate-500">Total à payer</p>
+      <h2 class="mt-3 text-3xl font-bold text-slate-900">{{ total_due }} DZD</h2>
+      <p class="mt-2 text-sm text-slate-500">Montant total des factures</p>
+    </div>
+
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <p class="text-sm font-medium text-slate-500">Total payé</p>
+      <h2 class="mt-3 text-3xl font-bold text-emerald-600">{{ total_paid }} DZD</h2>
+      <p class="mt-2 text-sm text-slate-500">Paiements déjà reçus</p>
+    </div>
+
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <p class="text-sm font-medium text-slate-500">Reste à payer</p>
+      <h2 class="mt-3 text-3xl font-bold text-rose-600">{{ remaining }} DZD</h2>
+      <p class="mt-2 text-sm text-slate-500">Solde restant</p>
+    </div>
+
+  </div>
+
+  <!-- Current status -->
+  <div class="rounded-3xl border border-slate-200 bg-white shadow-sm">
+    <div class="border-b border-slate-100 px-6 py-5">
+      <h2 class="text-lg font-semibold text-slate-900">Situation financière</h2>
+      <p class="text-sm text-slate-500">Résumé de vos factures et paiements</p>
+    </div>
+
+    <div class="flex flex-col gap-4 px-6 py-6 md:flex-row md:items-center md:justify-between">
+      <div>
+        <p class="text-sm text-slate-500">Statut étudiant</p>
+        <p class="mt-2 text-2xl font-bold text-slate-900">
+          {{ student.get_payment_status_display }}
+        </p>
+      </div>
+
+      {% if remaining <= 0 %}
+        <span class="w-fit rounded-full bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-600">
+          ✔ Situation réglée
+        </span>
+      {% else %}
+        <span class="w-fit rounded-full bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-600">
+          ⏳ Paiement restant
+        </span>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Invoices -->
+  <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+    <div class="border-b border-slate-100 px-6 py-5">
+      <h2 class="text-lg font-semibold text-slate-900">Mes factures</h2>
+      <p class="text-sm text-slate-500">Détails des montants à payer et échéances</p>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-slate-200">
+        <thead class="bg-slate-50">
+          <tr>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Formation</th>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Total</th>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Payé</th>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Statut</th>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Échéance</th>
+          </tr>
+        </thead>
+
+        <tbody class="divide-y divide-slate-100">
+          {% for invoice in invoices %}
+          <tr class="hover:bg-slate-50/70 transition">
+            <td class="px-6 py-4">
+              <p class="font-semibold text-slate-900">{{ invoice.formation.title }}</p>
+              <p class="text-sm text-slate-500">Facture #{{ invoice.id }}</p>
+            </td>
+
+            <td class="px-6 py-4 text-sm font-semibold text-slate-900">
+              {{ invoice.total_amount }} DZD
+            </td>
+
+            <td class="px-6 py-4 text-sm font-semibold text-emerald-600">
+              {{ invoice.paid_amount }} DZD
+            </td>
+
+            <td class="px-6 py-4">
+              {% if invoice.status == "paid" %}
+                <span class="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+                  Payée
+                </span>
+              {% elif invoice.status == "partial" %}
+                <span class="inline-flex rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
+                  Partielle
+                </span>
+              {% elif invoice.status == "overdue" %}
+                <span class="inline-flex rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
+                  En retard
+                </span>
+              {% else %}
+                <span class="inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">
+                  En attente
+                </span>
+              {% endif %}
+            </td>
+
+            <td class="px-6 py-4 text-sm text-slate-700">
+              {{ invoice.due_date|date:"d/m/Y" }}
+            </td>
+          </tr>
+
+          {% for payment in invoice.payments.all %}
+          <tr class="bg-slate-50/60">
+            <td class="px-6 py-3 pl-10 text-sm text-slate-500">
+              ↳ Paiement reçu
+            </td>
+            <td class="px-6 py-3 text-sm text-slate-500">
+              —
+            </td>
+            <td class="px-6 py-3 text-sm font-semibold text-emerald-600">
+              {{ payment.amount }} DZD
+            </td>
+            <td class="px-6 py-3 text-sm text-slate-500">
+              {{ payment.method|default:"Méthode non précisée" }}
+            </td>
+            <td class="px-6 py-3 text-sm text-slate-500">
+              {{ payment.date|date:"d/m/Y" }}
+            </td>
+          </tr>
+          {% endfor %}
+
+          {% empty %}
+          <tr>
+            <td colspan="5" class="px-6 py-16 text-center">
+              <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-2xl">
+                💳
+              </div>
+              <p class="text-base font-semibold text-slate-700">Aucune facture disponible</p>
+              <p class="mt-1 text-sm text-slate-400">
+                Vos factures et paiements apparaîtront ici dès qu’ils seront ajoutés par l’administration.
+              </p>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}

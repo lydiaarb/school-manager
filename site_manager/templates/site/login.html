@@ -1,0 +1,276 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block title %}Connexion & Inscription{% endblock %}
+
+{% block content %}
+<section class="mx-auto flex min-h-[calc(100vh-180px)] max-w-6xl items-center justify-center px-4 py-10">
+  <div
+    id="container"
+    data-show-signup="{% if show_signup %}true{% else %}false{% endif %}"
+    data-has-message="{% if message %}true{% else %}false{% endif %}"
+    class="relative min-h-[600px] w-full max-w-5xl overflow-hidden rounded-[2rem] bg-white shadow-2xl ring-1 ring-pink-100"
+  >
+    <!-- SIGN UP / ACTIVATE ACCOUNT -->
+    <div
+      id="signUpContainer"
+      class="absolute left-0 top-0 h-full w-full opacity-0 transition-all duration-500 ease-in-out md:w-1/2"
+      style="z-index: 1;"
+    >
+      <form
+        method="post"
+        action="{% url 'site_manager:login' %}"
+        class="flex h-full flex-col items-center justify-center bg-white px-8 text-center md:px-12"
+      >
+        {% csrf_token %}
+
+        <h1 class="mb-2 text-3xl font-extrabold text-slate-800">Activer votre compte</h1>
+        <p class="mb-6 text-sm text-slate-500">Commencez votre parcours culinaire avec nous</p>
+
+        {% if message and show_signup %}
+          <div class="mb-4 w-full rounded-2xl bg-red-50 px-4 py-3 text-sm font-medium text-red-600 ring-1 ring-red-200">
+            {{ message }}
+          </div>
+        {% endif %}
+
+        {% if messages %}
+          <div class="mb-4 w-full space-y-2">
+            {% for m in messages %}
+              <div class="rounded-2xl bg-green-50 px-4 py-3 text-sm font-medium text-green-600 ring-1 ring-green-200">
+                {{ m }}
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <input
+          type="email"
+          name="email"
+          placeholder="Adresse e-mail"
+          required
+          class="mb-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none ring-pink-200 transition focus:ring-4"
+        >
+
+        <input
+          type="text"
+          name="code"
+          placeholder="Code d'activation"
+          required
+          class="mb-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none ring-pink-200 transition focus:ring-4"
+        >
+
+        <input
+          type="password"
+          name="password"
+          placeholder="Mot de passe"
+          required
+          class="mb-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none ring-pink-200 transition focus:ring-4"
+        >
+
+        <input
+          type="password"
+          name="confirm_password"
+          placeholder="Confirmer le mot de passe"
+          required
+          class="mb-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none ring-pink-200 transition focus:ring-4"
+        >
+
+        <button
+          type="submit"
+          class="mt-2 rounded-full bg-pink-500 px-10 py-3 font-medium text-white transition duration-300 hover:scale-105 hover:bg-pink-600"
+        >
+          Activer mon compte
+        </button>
+<form method="post" action="{% url 'site_manager:resend_student_code' %}" class="mt-3 w-full">
+  {% csrf_token %}
+  <input type="hidden" name="email" id="resend-email-hidden">
+  <button
+    type="submit"
+    class="text-sm font-medium text-pink-500 hover:text-pink-600"
+  >
+    Renvoyer le code
+  </button>
+</form>
+        <p class="mt-4 text-sm text-slate-600 md:hidden">
+          Vous avez déjà un compte ?
+          <span id="mobileSignIn" class="cursor-pointer font-bold text-pink-500">Se connecter</span>
+        </p>
+      </form>
+    </div>
+
+    <!-- SIGN IN -->
+    <div
+      id="signInContainer"
+      class="absolute left-0 top-0 h-full w-full transition-all duration-500 ease-in-out md:w-1/2"
+      style="z-index: 2;"
+    >
+      <form
+        method="post"
+        action="{% url 'site_manager:login' %}"
+        class="flex h-full flex-col items-center justify-center bg-white px-8 text-center md:px-12"
+      >
+        {% csrf_token %}
+
+        <h1 class="mb-2 text-3xl font-extrabold text-slate-800">Bon retour !</h1>
+        <span class="mb-6 text-sm text-slate-500">Veuillez entrer vos informations</span>
+
+        {% if message and not show_signup %}
+          <div class="mb-4 w-full rounded-2xl bg-red-50 px-4 py-3 text-sm font-medium text-red-600 ring-1 ring-red-200">
+            {{ message }}
+          </div>
+        {% endif %}
+
+        {% if messages %}
+          <div class="mb-4 w-full space-y-2">
+            {% for m in messages %}
+              <div class="rounded-2xl bg-green-50 px-4 py-3 text-sm font-medium text-green-600 ring-1 ring-green-200">
+                {{ m }}
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <input
+          type="text"
+          name="username"
+          placeholder="Nom d'utilisateur"
+          required
+          class="mb-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none ring-pink-200 transition focus:ring-4"
+        >
+
+        <input
+          type="password"
+          name="password"
+          placeholder="Mot de passe"
+          required
+          class="mb-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none ring-pink-200 transition focus:ring-4"
+        >
+
+        <button
+          type="submit"
+          class="mt-2 rounded-full bg-pink-500 px-10 py-3 font-medium text-white transition duration-300 hover:scale-105 hover:bg-pink-600"
+        >
+          Se connecter
+        </button>
+
+        <p class="mt-4 text-sm text-slate-600 md:hidden">
+          Vous n'avez pas encore de compte ?
+          <span id="mobileSignUp" class="cursor-pointer font-bold text-pink-500">Créer un compte</span>
+        </p>
+      </form>
+    </div>
+
+    <!-- OVERLAY DESKTOP -->
+    <div
+      id="overlayContainer"
+      class="absolute left-1/2 top-0 hidden h-full w-1/2 overflow-hidden transition-all duration-500 ease-in-out md:block"
+      style="z-index: 100;"
+    >
+      <div
+        id="overlay"
+        class="relative -left-full h-full w-[200%] bg-gradient-to-r from-pink-400 via-pink-500 to-rose-400 text-white transition-all duration-500 ease-in-out"
+      >
+        <!-- LEFT PANEL -->
+        <div class="absolute left-0 top-0 flex h-full w-1/2 flex-col items-center justify-center px-10 text-center">
+          <h1 class="mb-3 text-3xl font-bold">Heureux de vous revoir !</h1>
+          <p class="mb-5 text-pink-50">Vous avez déjà un compte ?</p>
+          <button
+            id="signIn"
+            type="button"
+            class="rounded-full border border-white bg-transparent px-8 py-3 text-white transition hover:bg-white hover:text-pink-500"
+          >
+            Se connecter
+          </button>
+        </div>
+
+        <!-- RIGHT PANEL -->
+        <div class="absolute right-0 top-0 flex h-full w-1/2 flex-col items-center justify-center px-10 text-center">
+          <h1 class="mb-3 text-3xl font-bold">Nouveau ici ?</h1>
+          <p class="mb-5 text-pink-50">Activer votre compte pour commencer votre parcours</p>
+          <button
+            id="signUp"
+            type="button"
+            class="rounded-full border border-white bg-transparent px-8 py-3 text-white transition hover:bg-white hover:text-pink-500"
+          >
+            Activer mon compte
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const container = document.getElementById("container");
+  const signUpContainer = document.getElementById("signUpContainer");
+  const signInContainer = document.getElementById("signInContainer");
+  const overlayContainer = document.getElementById("overlayContainer");
+  const overlay = document.getElementById("overlay");
+
+  const signUpButton = document.getElementById("signUp");
+  const signInButton = document.getElementById("signIn");
+  const mobileSignUp = document.getElementById("mobileSignUp");
+  const mobileSignIn = document.getElementById("mobileSignIn");
+
+  function activateSignUp() {
+    if (!signUpContainer || !signInContainer) return;
+
+    signInContainer.classList.add("md:translate-x-full");
+    signUpContainer.classList.remove("opacity-0");
+    signUpContainer.classList.add("opacity-100", "z-[5]", "md:translate-x-full");
+
+    if (overlayContainer) overlayContainer.classList.add("-translate-x-full");
+    if (overlay) overlay.classList.add("translate-x-1/2");
+
+    signInContainer.classList.add("-translate-y-full");
+    signUpContainer.classList.remove("translate-y-full");
+  }
+
+  function activateSignIn() {
+    if (!signUpContainer || !signInContainer) return;
+
+    signInContainer.classList.remove("md:translate-x-full");
+    signUpContainer.classList.add("opacity-0");
+    signUpContainer.classList.remove("opacity-100", "z-[5]", "md:translate-x-full");
+
+    if (overlayContainer) overlayContainer.classList.remove("-translate-x-full");
+    if (overlay) overlay.classList.remove("translate-x-1/2");
+
+    signInContainer.classList.remove("-translate-y-full");
+    signUpContainer.classList.add("translate-y-full");
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    const showSignup = container.dataset.showSignup === "true";
+
+    if (window.innerWidth < 768) {
+      signUpContainer.classList.add("translate-y-full");
+      signUpContainer.classList.remove("opacity-0");
+      signUpContainer.classList.add("opacity-100");
+    }
+
+    if (showSignup) {
+      activateSignUp();
+    } else if (window.location.hash === "#signup") {
+      activateSignUp();
+    } else {
+      activateSignIn();
+    }
+  });
+
+  if (signUpButton) signUpButton.addEventListener("click", activateSignUp);
+  if (signInButton) signInButton.addEventListener("click", activateSignIn);
+  if (mobileSignUp) mobileSignUp.addEventListener("click", activateSignUp);
+  if (mobileSignIn) mobileSignIn.addEventListener("click", activateSignIn);
+  const emailInput = document.querySelector('#signUpContainer input[name="email"]');
+const resendEmailHidden = document.getElementById("resend-email-hidden");
+
+if (emailInput && resendEmailHidden) {
+  emailInput.addEventListener("input", function () {
+    resendEmailHidden.value = emailInput.value;
+  });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,509 @@
+{% extends "admin_dashboard/base_admin.html" %}
+{% load static %}
+{% block title %}Formations{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <!-- Page header -->
+  <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+    <div>
+      <h1 class="text-3xl font-bold tracking-tight text-slate-900">Formations</h1>
+      <p class="mt-1 text-base text-slate-500">
+        Gérez vos formations culinaires et leur publication sur le site public.
+      </p>
+    </div>
+    <div class="flex items-center gap-3">
+      <a href="{% url 'admin_dashboard:export_formations_excel' %}?q={{ request.GET.q|default:'' }}&category={{ request.GET.category|default:'' }}&status={{ request.GET.status|default:'' }}"
+         class="inline-flex items-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
+        Exporter Excel
+      </a>
+      <button onclick="openAddModal()"
+              class="rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white hover:bg-black">
+        + Ajouter une formation
+      </button>
+    </div>
+  </div>
+
+  <!-- Stats cards -->
+  <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <p class="text-sm font-medium text-slate-500">Formations totales</p>
+      <h2 class="mt-3 text-4xl font-bold text-slate-900">{{ formations.paginator.count }}</h2>
+      <p class="mt-2 text-sm text-slate-500">Toutes les formations créées</p>
+    </div>
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <p class="text-sm font-medium text-slate-500">Publiées</p>
+      <h2 class="mt-3 text-4xl font-bold text-slate-900">{{ published_count }}</h2>
+      <p class="mt-2 text-sm text-slate-500">Visibles sur le site public</p>
+    </div>
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <p class="text-sm font-medium text-slate-500">Brouillons</p>
+      <h2 class="mt-3 text-4xl font-bold text-slate-900">{{ draft_count }}</h2>
+      <p class="mt-2 text-sm text-slate-500">Non encore publiées</p>
+    </div>
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <p class="text-sm font-medium text-slate-500">Chefs formateurs</p>
+      <h2 class="mt-3 text-4xl font-bold text-slate-900">{{ chefs_count }}</h2>
+      <p class="mt-2 text-sm text-slate-500">Assignés aux formations</p>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+    <form method="get" class="grid grid-cols-1 gap-3 xl:grid-cols-12">
+      <div class="xl:col-span-5">
+        <div class="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+          <span class="mr-3 text-lg text-slate-400">🔎</span>
+          <input
+            type="text"
+            name="q"
+            value="{{ request.GET.q }}"
+            placeholder="Rechercher une formation, catégorie ou chef..."
+            class="w-full border-0 bg-transparent p-0 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-0">
+        </div>
+      </div>
+
+      <div class="xl:col-span-3">
+        <select name="category" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 focus:border-slate-300 focus:outline-none">
+          <option value="">Toutes les catégories</option>
+          {% for category in categories %}
+            <option value="{{ category }}" {% if request.GET.category == category %}selected{% endif %}>
+              {{ category }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="xl:col-span-2">
+        <select name="status" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 focus:border-slate-300 focus:outline-none">
+          <option value="">Tous les statuts</option>
+          <option value="published" {% if request.GET.status == "published" %}selected{% endif %}>Publiée</option>
+          <option value="draft" {% if request.GET.status == "draft" %}selected{% endif %}>Brouillon</option>
+        </select>
+      </div>
+
+      <div class="xl:col-span-2 flex gap-3">
+        <button type="submit"
+                class="flex-1 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">
+          Filtrer
+        </button>
+        <a href="{% url 'admin_dashboard:formations' %}"
+           class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+          Réinitialiser
+        </a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Table -->
+  <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-slate-200">
+        <thead class="bg-slate-50">
+          <tr>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Formation</th>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Catégorie</th>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Chef formateur</th>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Durée</th>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Prix</th>
+            <th class="px-6 py-4 text-left text-sm font-semibold text-slate-700">Statut</th>
+            <th class="px-6 py-4 text-right text-sm font-semibold text-slate-700">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for formation in formations %}
+          <tr class="hover:bg-slate-50/70 transition">
+            <td class="px-6 py-4">
+              <div class="flex items-center gap-3">
+                <div class="flex h-11 w-11 items-center justify-center overflow-hidden rounded-2xl bg-slate-100">
+                  {% if formation.image %}
+                    <img src="{{ formation.image.url }}" alt="{{ formation.title }}" class="h-11 w-11 object-cover">
+                  {% else %}
+                    <span class="text-xl">🍽️</span>
+                  {% endif %}
+                </div>
+                <div>
+                  <p class="font-semibold text-slate-900">{{ formation.title }}</p>
+                  <p class="text-sm text-slate-500">{{ formation.short_description|default:"Aucune description courte" }}</p>
+                </div>
+              </div>
+            </td>
+            <td class="px-6 py-4 text-sm text-slate-700">{{ formation.category|default:"—" }}</td>
+            <td class="px-6 py-4 text-sm text-slate-700">{{ formation.chef_name|default:"—" }}</td>
+            <td class="px-6 py-4 text-sm text-slate-700">{{ formation.duration|default:"—" }}</td>
+            <td class="px-6 py-4 text-sm text-slate-700">
+              {% if formation.price %}{{ formation.price }} MAD{% else %}—{% endif %}
+            </td>
+            <td class="px-6 py-4">
+              {% if formation.is_published %}
+                <span class="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">Publiée</span>
+              {% else %}
+                <span class="inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">Brouillon</span>
+              {% endif %}
+            </td>
+            <td class="px-6 py-4">
+              <div class="flex items-center justify-end gap-2">
+               {% if formation.is_published %}
+  <a href="{% url 'site_manager:formation_detail' formation.slug %}"
+     target="_blank"
+     class="inline-flex items-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800">
+    Voir
+  </a>
+{% else %}
+  <span class="inline-flex items-center rounded-xl bg-slate-200 px-4 py-2 text-sm font-medium text-slate-500">
+    Non publiée
+  </span>
+{% endif %}
+                <button type="button"
+                  onclick="openEditModal(this)"
+                  data-id="{{ formation.id }}"
+                  data-title="{{ formation.title|escapejs }}"
+                  data-short-description="{{ formation.short_description|escapejs }}"
+                  data-description="{{ formation.description|escapejs }}"
+                  data-category="{{ formation.category|escapejs }}"
+                  data-chef-name="{{ formation.chef_name|escapejs }}"
+                  data-duration="{{ formation.duration|escapejs }}"
+                  data-price="{{ formation.price|default:'' }}"
+                  data-is-published="{{ formation.is_published|yesno:'true,false' }}"
+                  class="inline-flex items-center rounded-xl bg-rose-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-rose-600">
+                  Modifier
+                </button>
+                <button type="button"
+                  onclick="openDeleteModal(this)"
+                  data-id="{{ formation.id }}"
+                  data-title="{{ formation.title|escapejs }}"
+                  class="inline-flex items-center rounded-xl bg-red-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-600">
+                  Supprimer
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" class="px-6 py-16 text-center">
+              <p class="text-base font-medium text-slate-600">Aucune formation trouvée.</p>
+              <p class="mt-1 text-sm text-slate-400">Modifiez les filtres ou ajoutez une nouvelle formation.</p>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Table footer -->
+    <div class="flex flex-col gap-4 border-t border-slate-200 px-6 py-4 md:flex-row md:items-center md:justify-between">
+      <p class="text-sm text-slate-500">
+        Total : <span class="font-semibold text-slate-800">{{ formations.paginator.count }}</span> formation{{ formations.paginator.count|pluralize }}
+      </p>
+
+      <div class="flex items-center gap-2">
+        {% if formations.has_previous %}
+          <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ formations.previous_page_number }}"
+             class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
+            Précédent
+          </a>
+        {% else %}
+          <span class="rounded-xl border border-slate-100 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-300">
+            Précédent
+          </span>
+        {% endif %}
+
+        {% for num in formations.paginator.page_range %}
+          {% if formations.number == num %}
+            <span class="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
+              {{ num }}
+            </span>
+          {% else %}
+            <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ num }}"
+               class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
+              {{ num }}
+            </a>
+          {% endif %}
+        {% endfor %}
+
+        {% if formations.has_next %}
+          <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ formations.next_page_number }}"
+             class="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+            Suivant
+          </a>
+        {% else %}
+          <span class="rounded-xl bg-slate-200 px-4 py-2 text-sm font-medium text-slate-400">
+            Suivant
+          </span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== ADD MODAL ===================== -->
+<div id="addModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+  <div class="w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-xl">
+    <div class="flex items-center justify-between border-b border-slate-100 px-6 pb-4 pt-6">
+      <h2 class="text-xl font-bold text-slate-900">Ajouter une formation</h2>
+      <button type="button" onclick="closeAddModal()" class="text-slate-400 hover:text-slate-700">✕</button>
+    </div>
+
+    <div class="max-h-[70vh] overflow-y-auto px-6 py-5">
+      <form id="addForm" method="POST" action="{% url 'admin_dashboard:formations' %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <label class="mb-2 block text-sm font-medium text-slate-700">Titre <span class="text-red-500">*</span></label>
+            <input type="text" name="title" required placeholder="Ex: Pâtisserie française"
+              class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none">
+          </div>
+          <div>
+            <label class="mb-2 block text-sm font-medium text-slate-700">Catégorie</label>
+            <input type="text" name="category" placeholder="Ex: Pâtisserie"
+              class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none">
+          </div>
+        </div>
+
+        <div>
+          <label class="mb-2 block text-sm font-medium text-slate-700">Courte description</label>
+          <input type="text" name="short_description" placeholder="Une ligne résumant la formation"
+            class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none">
+        </div>
+
+        <div>
+          <label class="mb-2 block text-sm font-medium text-slate-700">Description</label>
+          <textarea name="description" rows="3" placeholder="Description complète..."
+            class="w-full resize-none rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none"></textarea>
+        </div>
+
+        <div>
+          <label class="mb-2 block text-sm font-medium text-slate-700">Image</label>
+          <input type="file" name="image" accept="image/*"
+            class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:outline-none">
+        </div>
+
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div>
+            <label class="mb-2 block text-sm font-medium text-slate-700">Chef formateur</label>
+            <input type="text" name="chef_name" placeholder="Nom du chef"
+              class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none">
+          </div>
+          <div>
+            <label class="mb-2 block text-sm font-medium text-slate-700">Durée</label>
+            <input type="text" name="duration" placeholder="Ex: 3 mois"
+              class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none">
+          </div>
+          <div>
+            <label class="mb-2 block text-sm font-medium text-slate-700">Prix (DZD)</label>
+            <input type="number" name="price" placeholder="Ex: 2500"
+              class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none">
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 pt-1">
+          <input type="checkbox" name="is_published" id="add_is_published" class="h-4 w-4 rounded border-slate-300">
+          <label for="add_is_published" class="text-sm text-slate-700">Publier sur le site public</label>
+        </div>
+      </form>
+    </div>
+
+    <div class="flex justify-end gap-3 border-t border-slate-100 px-6 py-4">
+      <button type="button" onclick="closeAddModal()"
+        class="rounded-2xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+        Annuler
+      </button>
+      <button type="submit" form="addForm"
+        class="rounded-2xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-black">
+        Enregistrer
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== EDIT MODAL ===================== -->
+<div id="editModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+  <div class="w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-xl">
+    <div class="flex items-center justify-between border-b border-slate-100 px-6 pb-4 pt-6">
+      <h2 class="text-xl font-bold text-slate-900">Modifier la formation</h2>
+      <button type="button" onclick="closeEditModal()" class="text-slate-400 hover:text-slate-700">✕</button>
+    </div>
+
+    <div class="max-h-[70vh] overflow-y-auto px-6 py-5">
+      <form id="editForm" method="POST" action="{% url 'admin_dashboard:formations' %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="hidden" name="formation_id" id="edit_formation_id">
+
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <label class="mb-2 block text-sm font-medium text-slate-700">Titre <span class="text-red-500">*</span></label>
+            <input type="text" id="edit_title" name="title" required
+              class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none">
+          </div>
+          <div>
+            <label class="mb-2 block text-sm font-medium text-slate-700">Catégorie</label>
+            <input type="text" id="edit_category" name="category"
+              class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none">
+          </div>
+        </div>
+
+        <div>
+          <label class="mb-2 block text-sm font-medium text-slate-700">Courte description</label>
+          <input type="text" id="edit_short_description" name="short_description"
+            class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none">
+        </div>
+
+        <div>
+          <label class="mb-2 block text-sm font-medium text-slate-700">Description</label>
+          <textarea id="edit_description" name="description" rows="3"
+            class="w-full resize-none rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none"></textarea>
+        </div>
+
+        <div>
+          <label class="mb-2 block text-sm font-medium text-slate-700">Image (laisser vide pour conserver l'actuelle)</label>
+          <input type="file" name="image" accept="image/*"
+            class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:outline-none">
+        </div>
+
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div>
+            <label class="mb-2 block text-sm font-medium text-slate-700">Chef formateur</label>
+            <input type="text" id="edit_chef_name" name="chef_name"
+              class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none">
+          </div>
+          <div>
+            <label class="mb-2 block text-sm font-medium text-slate-700">Durée</label>
+            <input type="text" id="edit_duration" name="duration"
+              class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none">
+          </div>
+          <div>
+            <label class="mb-2 block text-sm font-medium text-slate-700">Prix (MAD)</label>
+            <input type="number" id="edit_price" name="price"
+              class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none">
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 pt-1">
+          <input type="checkbox" name="is_published" id="edit_is_published" class="h-4 w-4 rounded border-slate-300">
+          <label for="edit_is_published" class="text-sm text-slate-700">Publier sur le site public</label>
+        </div>
+      </form>
+    </div>
+
+    <div class="flex justify-end gap-3 border-t border-slate-100 px-6 py-4">
+      <button type="button" onclick="closeEditModal()"
+        class="rounded-2xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+        Annuler
+      </button>
+      <button type="submit" form="editForm"
+        class="rounded-2xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-black">
+        Enregistrer les modifications
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== DELETE MODAL ===================== -->
+<div id="deleteModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+  <div class="w-full max-w-md rounded-3xl bg-white p-6 shadow-xl">
+    <div class="flex items-center justify-between">
+      <h2 class="text-xl font-bold text-slate-900">Supprimer la formation</h2>
+      <button type="button" onclick="closeDeleteModal()" class="text-slate-400 hover:text-slate-700">✕</button>
+    </div>
+    <div class="mt-4">
+      <p class="text-sm text-slate-600">
+        Êtes-vous sûr de vouloir supprimer
+        <span id="delete_formation_title" class="font-semibold text-slate-900"></span> ?
+      </p>
+      <p class="mt-2 text-sm text-red-500">Cette action est irréversible.</p>
+    </div>
+    <form id="deleteForm" method="POST" action="{% url 'admin_dashboard:formations' %}" class="mt-6 flex justify-end gap-3">
+      {% csrf_token %}
+      <input type="hidden" name="delete_id" id="delete_formation_id_input">
+
+      <button type="button" onclick="closeDeleteModal()"
+        class="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+        Annuler
+      </button>
+      <button type="submit"
+        class="rounded-2xl bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600">
+        Supprimer
+      </button>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openAddModal() {
+  document.getElementById("addModal").classList.remove("hidden");
+  document.getElementById("addModal").classList.add("flex");
+  document.body.style.overflow = "hidden";
+}
+
+function closeAddModal() {
+  document.getElementById("addModal").classList.add("hidden");
+  document.getElementById("addModal").classList.remove("flex");
+  document.body.style.overflow = "";
+  document.getElementById("addForm").reset();
+}
+
+function openEditModal(button) {
+  const modal = document.getElementById("editModal");
+  modal.classList.remove("hidden");
+  modal.classList.add("flex");
+  document.body.style.overflow = "hidden";
+
+  document.getElementById("edit_formation_id").value = button.dataset.id;
+  document.getElementById("edit_title").value = button.dataset.title;
+  document.getElementById("edit_short_description").value = button.dataset.shortDescription;
+  document.getElementById("edit_description").value = button.dataset.description;
+  document.getElementById("edit_category").value = button.dataset.category;
+  document.getElementById("edit_chef_name").value = button.dataset.chefName;
+  document.getElementById("edit_duration").value = button.dataset.duration;
+  document.getElementById("edit_price").value = button.dataset.price;
+  document.getElementById("edit_is_published").checked = button.dataset.isPublished === "true";
+}
+
+function closeEditModal() {
+  document.getElementById("editModal").classList.add("hidden");
+  document.getElementById("editModal").classList.remove("flex");
+  document.body.style.overflow = "";
+}
+
+function openDeleteModal(button) {
+  const modal = document.getElementById("deleteModal");
+  modal.classList.remove("hidden");
+  modal.classList.add("flex");
+  document.body.style.overflow = "hidden";
+
+  document.getElementById("delete_formation_id_input").value = button.dataset.id;
+  document.getElementById("delete_formation_title").textContent = button.dataset.title;
+}
+
+function closeDeleteModal() {
+  document.getElementById("deleteModal").classList.add("hidden");
+  document.getElementById("deleteModal").classList.remove("flex");
+  document.body.style.overflow = "";
+}
+
+["addModal", "editModal", "deleteModal"].forEach(id => {
+  const element = document.getElementById(id);
+  if (!element) return;
+
+  element.addEventListener("click", function(e) {
+    if (e.target === this) {
+      if (id === "addModal") closeAddModal();
+      if (id === "editModal") closeEditModal();
+      if (id === "deleteModal") closeDeleteModal();
+    }
+  });
+});
+
+document.addEventListener("keydown", function(e) {
+  if (e.key === "Escape") {
+    closeAddModal();
+    closeEditModal();
+    closeDeleteModal();
+  }
+});
+</script>
+{% endblock %}

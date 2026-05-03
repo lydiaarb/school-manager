@@ -1,0 +1,160 @@
+{% load tailwind_tags %}
+{% load static %}
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>{% block title %}Espace Enseignant{% endblock %}</title>
+  {% tailwind_css %}
+</head>
+
+<body class="bg-slate-100">
+  <div class="min-h-screen flex">
+
+    <!-- Sidebar -->
+    <aside class="hidden lg:flex lg:fixed lg:inset-y-0 lg:left-0 lg:z-40 lg:flex-col w-72 bg-slate-900 text-slate-100">
+
+      <!-- Brand -->
+      <div class="h-16 flex items-center gap-3 px-6 border-b border-slate-800">
+        <div class="h-10 w-10 rounded-2xl bg-white/10 grid place-items-center font-bold">
+          JR
+        </div>
+        <div>
+          <div class="font-semibold leading-tight">Jouri</div>
+          <div class="text-xs text-slate-400">Espace enseignant</div>
+        </div>
+      </div>
+
+   
+
+      <!-- Nav -->
+      <nav class="flex-1 px-4 py-2 space-y-2">
+
+        <a href="{% url 'teacher_dashboard:home' %}"
+           class="flex items-center gap-3 px-4 py-3 rounded-2xl transition
+           {% if request.resolver_match.url_name == 'home' %}bg-white/10 text-white{% else %}text-slate-300 hover:bg-white/10 hover:text-white{% endif %}">
+          <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 11l9-8 9 8v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1V11z"/>
+          </svg>
+          <span class="font-medium">Accueil</span>
+        </a>
+
+        <a href="{% url 'teacher_dashboard:timetable' %}"
+           class="flex items-center gap-3 px-4 py-3 rounded-2xl transition
+           {% if request.resolver_match.url_name == 'timetable' %}bg-white/10 text-white{% else %}text-slate-300 hover:bg-white/10 hover:text-white{% endif %}">
+          <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8 2v4M16 2v4M3 9h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/>
+          </svg>
+          <span class="font-medium">Mon planning</span>
+        </a>
+
+        <a href="{% url 'teacher_dashboard:notifications' %}"
+           class="flex items-center gap-3 px-4 py-3 rounded-2xl transition
+           {% if request.resolver_match.url_name == 'notifications' %}bg-white/10 text-white{% else %}text-slate-300 hover:bg-white/10 hover:text-white{% endif %}">
+          <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5m6 0a3 3 0 0 1-6 0"/>
+          </svg>
+          <span class="font-medium">Notifications</span>
+        </a>
+
+        <a href="{% url 'teacher_dashboard:change_password' %}"
+           class="flex items-center gap-3 px-4 py-3 rounded-2xl transition
+           {% if request.resolver_match.url_name == 'change_password' %}bg-white/10 text-white{% else %}text-slate-300 hover:bg-white/10 hover:text-white{% endif %}">
+          <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2M7 10V8a5 5 0 0 1 10 0v2M5 10h14v11H5z"/>
+          </svg>
+          <span class="font-medium">Paramétres</span>
+        </a>
+      </nav>
+   <!-- Teacher card -->
+      <div class="px-4 py-5">
+        <div class="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+          <div class="h-10 w-10 rounded-full bg-white/10 grid place-items-center font-bold text-sm">
+            {{ request.user.employee_profile.first_name|slice:":1" }}{{ request.user.employee_profile.last_name|slice:":1" }}
+          </div>
+          <div class="min-w-0">
+            <div class="text-sm font-semibold truncate">
+              {{ request.user.employee_profile.first_name }} {{ request.user.employee_profile.last_name }}
+            </div>
+            <div class="text-xs text-slate-400 truncate">Enseignant</div>
+          </div>
+        </div>
+      </div>
+      <!-- Logout -->
+      <div class="shrink-0 px-4 pb-5">
+        <a href="{% url 'teacher_dashboard:logout' %}"
+           class="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium text-red-400 hover:bg-red-500/10 transition">
+          <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16 17l5-5-5-5M21 12H9"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8"/>
+          </svg>
+          <span>Déconnexion</span>
+        </a>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <div class="flex-1 flex flex-col lg:ml-72">
+
+      <!-- Header -->
+      <header class="h-16 bg-white/70 backdrop-blur border-b border-slate-200 flex items-center">
+        <div class="w-full px-4 sm:px-6 flex items-center justify-between gap-3">
+
+          <div>
+            <p class="text-xs font-medium text-slate-500">Tableau de bord enseignant</p>
+            <h1 class="text-lg font-bold text-slate-900">
+              Bonjour, {{ request.user.employee_profile.first_name|default:request.user.username }}
+            </h1>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <a href="{% url 'teacher_dashboard:notifications' %}"
+               class="relative flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50">
+              <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5m6 0a3 3 0 0 1-6 0"/>
+              </svg>
+            </a>
+
+            <div class="hidden sm:flex items-center gap-3 h-10 rounded-2xl border border-slate-200 bg-white px-3">
+              <div class="h-7 w-7 rounded-full bg-slate-200 grid place-items-center text-xs font-bold text-slate-700">
+                {{ request.user.employee_profile.first_name|slice:":1" }}{{ request.user.employee_profile.last_name|slice:":1" }}
+              </div>
+              <div class="text-left">
+                <div class="text-sm font-semibold">
+                  {{ request.user.employee_profile.first_name }} {{ request.user.employee_profile.last_name }}
+                </div>
+                <div class="text-xs text-slate-500">Enseignant</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Content -->
+      <main class="flex-1 px-4 py-6 sm:px-6">
+        {% if messages %}
+          <div class="mb-4 space-y-2">
+            {% for message in messages %}
+              <div class="
+                rounded-xl px-4 py-3 text-sm
+                {% if message.tags == 'success' %}bg-emerald-100 text-emerald-800
+                {% elif message.tags == 'error' %}bg-red-100 text-red-800
+                {% else %}bg-slate-100 text-slate-800{% endif %}
+              ">
+                {{ message }}
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+      </main>
+
+    </div>
+  </div>
+
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

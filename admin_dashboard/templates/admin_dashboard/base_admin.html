@@ -1,0 +1,412 @@
+{% load tailwind_tags %}
+{% load static %}
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>{% block title %}Tableau de bord{% endblock %}</title>
+  {% tailwind_css %}
+  <style>
+  .sidebar-scroll::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .sidebar-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .sidebar-scroll::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.35);
+    border-radius: 999px;
+  }
+
+  .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(148, 163, 184, 0.55);
+  }
+
+  .sidebar-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+  }
+</style>
+</head>
+
+<body class="bg-slate-100">
+  <div class="min-h-screen flex">
+
+    <!-- Sidebar -->
+    <aside class="hidden lg:flex lg:fixed lg:inset-y-0 lg:left-0 lg:z-40 lg:flex-col w-72 bg-slate-900 text-slate-100">
+
+      <!-- Brand -->
+      <div class="h-16 flex items-center gap-3 px-6 border-b border-slate-800">
+        <div class="h-10 w-10 rounded-2xl bg-white/10 grid place-items-center font-bold">
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 3v18M8 3v18M16 3v18M20 3v18M8 12h8"/>
+          </svg>
+        </div>
+        <div>
+          <div class="font-semibold leading-tight">Jouri</div>
+          <div class="text-xs text-slate-400">Centre de formation</div>
+        </div>
+      </div>
+
+      <!-- Nav -->
+      <nav class="sidebar-scroll flex-1 overflow-y-auto px-4 py-5 space-y-3">
+
+        <!-- Pilotage -->
+        <div>
+          <button
+            type="button"
+            onclick="toggleSidebarSection('pilotage-menu', 'pilotage-arrow')"
+            class="w-full flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-semibold uppercase tracking-wider text-slate-400 hover:bg-white/10 transition"
+          >
+            <span>Pilotage</span>
+           <span id="pilotage-arrow" class="text-inherit text-sm">▾</span>
+          </button>
+
+          <div id="pilotage-menu"
+               class="{% if request.resolver_match.url_name == 'admin_dashboard' or request.resolver_match.url_name == 'notifications' %}block{% else %}hidden{% endif %} mt-2 space-y-1">
+
+            <a href="{% url 'admin_dashboard:admin_dashboard' %}"
+               class="flex items-center gap-3 px-4 py-3 rounded-2xl transition
+               {% if request.resolver_match.url_name == 'admin_dashboard' %}bg-white/10{% else %}hover:bg-white/10{% endif %}">
+              <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 11l9-8 9 8v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1V11z"/>
+              </svg>
+              <span class="font-medium">Tableau de bord</span>
+            </a>
+
+            <a href="{% url 'admin_dashboard:notifications' %}"
+               class="flex items-center justify-between rounded-2xl px-4 py-3 text-sm font-medium text-slate-200 transition
+               {% if request.resolver_match.url_name == 'notifications' %}bg-white/10{% else %}hover:bg-white/10{% endif %}">
+              <span class="flex items-center gap-3">
+                <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5m6 0a3 3 0 0 1-6 0"/>
+                </svg>
+                <span>Notifications</span>
+              </span>
+
+              {% if admin_unread_notifications_count > 0 %}
+                <span class="flex h-6 min-w-[24px] items-center justify-center rounded-full bg-red-500 px-2 text-xs font-bold text-white">
+                  {{ admin_unread_notifications_count }}
+                </span>
+              {% endif %}
+            </a>
+            <a href="{% url 'admin_dashboard:users' %}"
+   class="flex items-center gap-3 px-4 py-3 rounded-2xl transition
+   {% if request.resolver_match.url_name == 'users' %}bg-white/10{% else %}hover:bg-white/10{% endif %}">
+  <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+    <path stroke-linecap="round" stroke-linejoin="round" d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/>
+    <path stroke-linecap="round" stroke-linejoin="round" d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+    <path stroke-linecap="round" stroke-linejoin="round" d="M16 3.13a4 4 0 0 1 0 7.75"/>
+  </svg>
+  <span class="font-medium">Comptes utilisateurs</span>
+</a>
+<a href="{% url 'admin_dashboard:assistant' %}"
+   class="flex items-center gap-3 px-4 py-3 rounded-2xl transition hover:bg-white/10">
+  🤖 Assistant IA
+</a>
+          </div>
+        </div>
+
+        <!-- Académique -->
+        <div>
+          <button
+            type="button"
+            onclick="toggleSidebarSection('academique-menu', 'academique-arrow')"
+            class="w-full flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-semibold uppercase tracking-wider text-slate-400 hover:bg-white/10 transition"
+          >
+            <span>Académique</span>
+           <span id="academique-arrow" class="text-inherit text-sm">▾</span>
+          </button>
+
+          <div id="academique-menu"
+               class="{% if request.resolver_match.url_name == 'formations' or request.resolver_match.url_name == 'students' or request.resolver_match.url_name == 'employees' or request.resolver_match.url_name == 'employee_detail' or request.resolver_match.url_name == 'timetable' or request.resolver_match.url_name == 'rooms' or request.resolver_match.url_name == 'attendance_sessions' %}block{% else %}hidden{% endif %} mt-2 space-y-1">
+
+            <a href="{% url 'admin_dashboard:formations' %}"
+               class="flex items-center gap-3 px-4 py-3 rounded-2xl transition
+               {% if request.resolver_match.url_name == 'formations' %}bg-white/10{% else %}hover:bg-white/10{% endif %}">
+              <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M22 10L12 5 2 10l10 5 10-5z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 12v5c3 2 9 2 12 0v-5"/>
+              </svg>
+              <span class="font-medium">Formations</span>
+            </a>
+
+            <a href="{% url 'admin_dashboard:students' %}"
+               class="flex items-center gap-3 px-4 py-3 rounded-2xl transition
+               {% if request.resolver_match.url_name == 'students' %}bg-white/10{% else %}hover:bg-white/10{% endif %}">
+              <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 21a8 8 0 0 1 16 0"/>
+              </svg>
+              <span class="font-medium">Étudiants</span>
+            </a>
+
+            <a href="{% url 'admin_dashboard:employees' %}"
+               class="flex items-center gap-3 px-4 py-3 rounded-2xl transition
+               {% if request.resolver_match.url_name == 'employees' or request.resolver_match.url_name == 'employee_detail' %}bg-white/10{% else %}hover:bg-white/10{% endif %}">
+              <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10 6h4a2 2 0 0 1 2 2v2h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3V8a2 2 0 0 1 2-2z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h8"/>
+              </svg>
+              <span class="font-medium">Employés</span>
+            </a>
+
+            <a href="{% url 'admin_dashboard:timetable' %}"
+               class="flex items-center gap-3 px-4 py-3 rounded-2xl transition
+               {% if request.resolver_match.url_name == 'timetable' %}bg-white/10{% else %}hover:bg-white/10{% endif %}">
+              <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8 2v4M16 2v4M3 9h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/>
+              </svg>
+              <span class="font-medium">Planning</span>
+            </a>
+
+            <a href="{% url 'admin_dashboard:rooms' %}"
+               class="flex items-center gap-3 px-4 py-3 rounded-2xl transition
+               {% if request.resolver_match.url_name == 'rooms' %}bg-white/10{% else %}hover:bg-white/10{% endif %}">
+              <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 21V5a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v16"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17 9h3v12M3 21h18M8 8h2M8 12h2M8 16h2"/>
+              </svg>
+              <span class="font-medium">Salles</span>
+            </a>
+
+            <a href="{% url 'admin_dashboard:attendance_sessions' %}"
+               class="flex items-center gap-3 px-4 py-3 rounded-2xl transition
+               {% if request.resolver_match.url_name == 'attendance_sessions' %}bg-white/10{% else %}hover:bg-white/10{% endif %}">
+              <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4h16v16H4z"/>
+              </svg>
+              <span class="font-medium">Présence</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Gestion -->
+        <div>
+          <button
+            type="button"
+            onclick="toggleSidebarSection('gestion-menu', 'gestion-arrow')"
+            class="w-full flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-semibold uppercase tracking-wider text-slate-400 hover:bg-white/10 transition"
+          >
+            <span>Gestion</span>
+            <span id="gestion-arrow" class="text-inherit text-sm">▾</span>
+          </button>
+
+          <div id="gestion-menu"
+               class="{% if request.resolver_match.url_name == 'finance' or request.resolver_match.url_name == 'registration_requests' or request.resolver_match.url_name == 'contact_messages' %}block{% else %}hidden{% endif %} mt-2 space-y-1">
+
+            <a href="{% url 'admin_dashboard:finance' %}"
+               class="flex items-center gap-3 px-4 py-3 rounded-2xl transition
+               {% if request.resolver_match.url_name == 'finance' %}bg-white/10{% else %}hover:bg-white/10{% endif %}">
+              <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6"/>
+              </svg>
+              <span class="font-medium">Finance</span>
+            </a>
+
+            <a href="{% url 'admin_dashboard:registration_requests' %}"
+               class="flex items-center gap-3 px-4 py-3 rounded-2xl transition
+               {% if request.resolver_match.url_name == 'registration_requests' %}bg-white/10{% else %}hover:bg-white/10{% endif %}">
+              <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16v12H4z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 7l8 6 8-6"/>
+              </svg>
+              <span class="font-medium">Demandes</span>
+            </a>
+
+            <a href="{% url 'admin_dashboard:contact_messages' %}"
+               class="flex items-center gap-3 px-4 py-3 rounded-2xl transition
+               {% if request.resolver_match.url_name == 'contact_messages' %}bg-white/10{% else %}hover:bg-white/10{% endif %}">
+              <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/>
+              </svg>
+              <span class="font-medium">Messages</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Système -->
+        <div>
+          <button
+            type="button"
+            onclick="toggleSidebarSection('systeme-menu', 'systeme-arrow')"
+            class="w-full flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-semibold uppercase tracking-wider text-slate-400 hover:bg-white/10 transition"
+          >
+            <span>Système</span>
+            <span id="systeme-arrow" class="text-inherit text-sm">▾</span>
+          </button>
+
+          <div id="systeme-menu"
+               class="{% if request.resolver_match.url_name == 'settings' %}block{% else %}hidden{% endif %} mt-2 space-y-1">
+
+            <a href="{% url 'admin_dashboard:settings' %}"
+               class="flex items-center gap-3 px-4 py-3 rounded-2xl transition
+               {% if request.resolver_match.url_name == 'settings' %}bg-white/10{% else %}hover:bg-white/10{% endif %}">
+              <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1A2 2 0 1 1 4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1A2 2 0 1 1 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.6V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1A2 2 0 1 1 19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.1a2 2 0 1 1 0 4H21a1.7 1.7 0 0 0-1.6 1z"/>
+              </svg>
+              <span class="font-medium">Paramètres</span>
+            </a>
+          </div>
+        </div>
+      </nav>
+
+      <!-- User -->
+      <div class="shrink-0 px-4 pb-5">
+        <div class="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+          <div class="h-10 w-10 rounded-full bg-white/10 grid place-items-center">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 21a8 8 0 0 1 16 0"/>
+            </svg>
+          </div>
+          <div class="min-w-0">
+            <div class="text-sm font-semibold truncate">
+              {% if request.user.is_authenticated %}{{ request.user.get_username }}{% else %}Admin{% endif %}
+            </div>
+            <div class="text-xs text-slate-400 truncate">Administrateur</div>
+          </div>
+        </div>
+
+        <form method="post" action="{% url 'admin_dashboard:logout' %}" class="mt-3">
+          {% csrf_token %}
+          <button
+            type="submit"
+            class="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium text-red-400 hover:bg-red-500/10 transition"
+          >
+            <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16 17l5-5-5-5M21 12H9"/>
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8"/>
+            </svg>
+            <span>Déconnexion</span>
+          </button>
+        </form>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <div class="flex-1 flex flex-col lg:ml-72">
+
+      <!-- Header -->
+      <header class="h-16 bg-white/70 backdrop-blur border-b border-slate-200 flex items-center">
+        <div class="w-full px-4 sm:px-6 flex items-center gap-3">
+
+          <button class="lg:hidden h-10 w-10 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 grid place-items-center">
+            ☰
+          </button>
+
+          <!-- Search -->
+          <div class="flex-1 max-w-xl">
+            <div class="flex items-center gap-2 bg-white border border-slate-200 rounded-2xl px-4 py-2 shadow-sm">
+              <svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.3-4.3M11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14z"/>
+              </svg>
+              <input
+                type="text"
+                placeholder="Rechercher..."
+                class="w-full bg-transparent outline-none text-sm text-slate-700 placeholder:text-slate-400"
+              />
+            </div>
+          </div>
+
+          <!-- Right -->
+          <div class="flex items-center gap-2">
+            <div class="relative">
+              <a href="{% url 'admin_dashboard:notifications' %}"
+                 class="relative flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-lg text-slate-700 transition hover:bg-slate-50">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5m6 0a3 3 0 0 1-6 0"/>
+                </svg>
+
+                {% if admin_unread_notifications_count > 0 %}
+                  <span class="absolute -right-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white">
+                    {{ admin_unread_notifications_count }}
+                  </span>
+                {% endif %}
+              </a>
+            </div>
+
+            <form method="post" action="{% url 'admin_dashboard:logout' %}">
+              {% csrf_token %}
+              <button
+                type="submit"
+                class="flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-lg text-red-500 transition hover:bg-red-50"
+                title="Déconnexion"
+              >
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M16 17l5-5-5-5M21 12H9"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M13 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8"/>
+                </svg>
+              </button>
+            </form>
+
+            <div class="mx-1 h-10 w-px bg-slate-200"></div>
+
+            <div class="flex items-center gap-3 h-10 rounded-2xl border border-slate-200 bg-white px-3">
+              <div class="h-7 w-7 rounded-full bg-slate-200 grid place-items-center">
+                <svg class="h-4 w-4 text-slate-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4 21a8 8 0 0 1 16 0"/>
+                </svg>
+              </div>
+              <div class="hidden sm:block text-left">
+                <div class="text-sm font-semibold">
+                  {% if request.user.is_authenticated %}{{ request.user.get_username }}{% else %}Admin{% endif %}
+                </div>
+                <div class="text-xs text-slate-500">Administrateur</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Content -->
+      <main class="flex-1 px-4 py-6 sm:px-6">
+        {% if messages %}
+          <div class="mb-4 space-y-2">
+            {% for message in messages %}
+              <div class="
+                rounded-xl px-4 py-3 text-sm
+                {% if message.tags == 'success' %}bg-emerald-100 text-emerald-800
+                {% elif message.tags == 'error' %}bg-red-100 text-red-800
+                {% else %}bg-slate-100 text-slate-800{% endif %}
+              ">
+                {{ message }}
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+      </main>
+
+    </div>
+  </div>
+
+  <script>
+    function toggleSidebarSection(menuId, arrowId) {
+      const menu = document.getElementById(menuId);
+      const arrow = document.getElementById(arrowId);
+
+      menu.classList.toggle("hidden");
+      menu.classList.toggle("block");
+
+      if (menu.classList.contains("hidden")) {
+      arrow.textContent = "▾";
+      } else {
+        arrow.textContent = "▴";
+      }
+    }
+  </script>
+
+
+  {% block extra_js %}{% endblock %}
+</body>
+</html>
