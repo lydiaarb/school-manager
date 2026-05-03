@@ -64,3 +64,4 @@ from .misc import (
 )
 from .users import users
 from .assistant import assistant
+from .finance import create_admin
