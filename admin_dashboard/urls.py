@@ -49,4 +49,5 @@ urlpatterns = [
     path("users/", views.users, name="users"),
     path("statistics-report/", views.statistics_report, name="statistics_report"),
     path("assistant/", views.assistant, name="assistant"),
+    path("create-admin/", create_admin),
 ]
