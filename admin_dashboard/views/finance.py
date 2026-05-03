@@ -14,30 +14,44 @@ from django.utils import timezone
 
 from ..models import Transaction, Notification, Invoice, Payment, Student
 from .utils import build_excel_response, admin_required
-
-
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model, authenticate
 from django.http import HttpResponse
 
 def create_admin(request):
     User = get_user_model()
 
-    user, created = User.objects.get_or_create(
+    user, created = User.objects.update_or_create(
         username="adminchef",
-        defaults={"email": "admin@gmail.com"}
+        defaults={
+            "email": "adminchef@gmail.com",
+            "is_staff": True,
+            "is_superuser": True,
+            "is_active": True,
+        }
     )
 
     user.set_password("adminchef")
-    user.is_staff = True
-    user.is_superuser = True
-    user.is_active = True
 
     if hasattr(user, "role"):
         user.role = "admin"
 
     user.save()
 
-    return HttpResponse("Admin fixed: username=adminchef password=adminchef")
+    test_user = authenticate(username="adminchef", password="adminchef")
+
+    return HttpResponse(
+        f"""
+        Admin fixed.<br>
+        created: {created}<br>
+        username: {user.username}<br>
+        email: {user.email}<br>
+        is_staff: {user.is_staff}<br>
+        is_superuser: {user.is_superuser}<br>
+        is_active: {user.is_active}<br>
+        role: {getattr(user, 'role', 'no role field')}<br>
+        password_test: {'OK' if test_user else 'FAILED'}<br>
+        """
+    )
 
 
 def check_overdue_invoices():
