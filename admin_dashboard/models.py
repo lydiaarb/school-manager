@@ -29,6 +29,60 @@ class Formation(models.Model):
 
     def __str__(self):
         return self.title
+class FormationImage(models.Model):
+    formation = models.ForeignKey(
+        'Formation',
+        on_delete=models.CASCADE,
+        related_name='images',
+        verbose_name="Formation"
+    )
+    image = models.ImageField(
+        upload_to='formations/gallery/',
+        verbose_name="Image"
+    )
+    caption = models.CharField(
+        max_length=200,
+        blank=True,
+        verbose_name="Légende"
+    )
+    order = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Ordre d'affichage"
+    )
+ 
+    class Meta:
+        ordering = ['order']
+        verbose_name = "Image de formation"
+        verbose_name_plural = "Images de formation"
+ 
+    def __str__(self):
+        return f"Image {self.order} — {self.formation.title}"
+ 
+ 
+class FormationObjectif(models.Model):
+    """Objectifs pédagogiques d'une formation (saisie libre par l'admin)."""
+    formation = models.ForeignKey(
+        'Formation',
+        on_delete=models.CASCADE,
+        related_name='objectifs',
+        verbose_name="Formation"
+    )
+    texte = models.CharField(
+        max_length=300,
+        verbose_name="Objectif"
+    )
+    order = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Ordre"
+    )
+ 
+    class Meta:
+        ordering = ['order']
+        verbose_name = "Objectif"
+        verbose_name_plural = "Objectifs"
+ 
+    def __str__(self):
+        return f"{self.texte[:60]} — {self.formation.title}"
 
 
 class Transaction(models.Model):
@@ -58,12 +112,17 @@ class Transaction(models.Model):
         return f"{self.type} - {self.ref}"
 
 
-
 class Student(models.Model):
     PAYMENT_STATUS_CHOICES = [
         ("paid", "Paid"),
         ("partial", "Partial"),
         ("pending", "Pending"),
+    ]
+
+    FORMATION_TYPE_CHOICES = [
+        ("12mois", "12 mois"),
+        ("4mois", "4 mois"),
+        ("atelier", "Atelier"),
     ]
 
     user = models.OneToOneField(
@@ -75,14 +134,23 @@ class Student(models.Model):
     )
 
     first_name = models.CharField(max_length=100)
-    last_name = models.CharField(max_length=100)
-    phone = models.CharField(max_length=20)
+    last_name  = models.CharField(max_length=100)
+    phone      = models.CharField(max_length=20)
+    email      = models.EmailField(blank=True, default="")          # ← new
 
     formation = models.ForeignKey(
         Formation,
         on_delete=models.CASCADE,
         related_name="students"
     )
+
+    formation_type    = models.CharField(                           # ← new
+        max_length=20,
+        choices=FORMATION_TYPE_CHOICES,
+        blank=True,
+        default=""
+    )
+    dossier_submitted = models.BooleanField(default=False)          # ← new
 
     start_date = models.DateField()
 
@@ -95,10 +163,10 @@ class Student(models.Model):
     attendance_percentage = models.PositiveIntegerField(default=0)
 
     student_code = models.CharField(max_length=20, unique=True, blank=True)
-    qr_token = models.CharField(max_length=100, unique=True, blank=True)
+    qr_token     = models.CharField(max_length=100, unique=True, blank=True)
 
     is_active = models.BooleanField(default=True)
-    is_new = models.BooleanField(default=True)
+    is_new    = models.BooleanField(default=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -107,10 +175,9 @@ class Student(models.Model):
             last_student = Student.objects.order_by("-id").first()
             if last_student and last_student.student_code:
                 last_number = int(last_student.student_code.replace("STD", ""))
-                new_number = last_number + 1
+                new_number  = last_number + 1
             else:
                 new_number = 1
-
             self.student_code = f"STD{new_number:04d}"
 
         if not self.qr_token:

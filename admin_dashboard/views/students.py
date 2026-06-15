@@ -30,6 +30,7 @@ def _apply_student_filters(qs, request):
     q                = request.GET.get("q", "").strip()
     formation_filter = request.GET.get("formation", "").strip()
     payment_status   = request.GET.get("payment_status", "").strip()
+    formation_type   = request.GET.get("formation_type", "").strip()  # add this
 
     if q:
         qs = qs.filter(
@@ -37,12 +38,12 @@ def _apply_student_filters(qs, request):
             Q(last_name__icontains=q) |
             Q(phone__icontains=q)
         )
-
     if formation_filter:
         qs = qs.filter(formation_id=formation_filter)
-
     if payment_status:
         qs = qs.filter(payment_status=payment_status)
+    if formation_type:                                     # add this
+        qs = qs.filter(formation_type=formation_type)     # add this
 
     return qs
 
@@ -150,37 +151,45 @@ def _handle_student_post(request):
         messages.success(request, "Étudiant supprimé avec succès.")
         return redirect("admin_dashboard:students")
 
-    first_name     = request.POST.get("first_name", "").strip()
-    last_name      = request.POST.get("last_name", "").strip()
-    phone          = request.POST.get("phone", "").strip()
-    formation_id   = request.POST.get("formation", "").strip()
-    start_date     = request.POST.get("start_date", "").strip()
-    payment_status = request.POST.get("payment_status", "pending").strip() or "pending"
-    is_active      = request.POST.get("is_active") == "on"
-    is_new         = request.POST.get("is_new") == "on"
+    first_name        = request.POST.get("first_name", "").strip()
+    last_name         = request.POST.get("last_name", "").strip()
+    phone             = request.POST.get("phone", "").strip()
+    email             = request.POST.get("email", "").strip()
+    formation_id      = request.POST.get("formation", "").strip()
+    formation_type    = request.POST.get("formation_type", "").strip()
+    start_date        = request.POST.get("start_date", "").strip()
+    payment_status    = request.POST.get("payment_status", "pending").strip() or "pending"
+    is_active         = request.POST.get("is_active") == "on"
+    is_new            = request.POST.get("is_new") == "on"
+    dossier_submitted = request.POST.get("dossier_submitted") == "on"
 
     if not all([first_name, last_name, phone, formation_id, start_date]):
         messages.error(request, "Veuillez remplir tous les champs obligatoires.")
         return redirect("admin_dashboard:students")
 
     if student_id:
-        student                = get_object_or_404(Student, id=student_id)
-        student.first_name     = first_name
-        student.last_name      = last_name
-        student.phone          = phone
-        student.formation_id   = formation_id
-        student.start_date     = start_date
-        student.payment_status = payment_status
-        student.is_active      = is_active
-        student.is_new         = is_new
+        student                   = get_object_or_404(Student, id=student_id)
+        student.first_name        = first_name
+        student.last_name         = last_name
+        student.phone             = phone
+        student.email             = email
+        student.formation_id      = formation_id
+        student.formation_type    = formation_type
+        student.start_date        = start_date
+        student.payment_status    = payment_status
+        student.is_active         = is_active
+        student.is_new            = is_new
+        student.dossier_submitted = dossier_submitted
         student.save()
         messages.success(request, "Étudiant modifié avec succès.")
     else:
         Student.objects.create(
             first_name=first_name, last_name=last_name,
-            phone=phone, formation_id=formation_id,
+            phone=phone, email=email,
+            formation_id=formation_id, formation_type=formation_type,
             start_date=start_date, payment_status=payment_status,
             is_active=is_active, is_new=is_new,
+            dossier_submitted=dossier_submitted,
         )
         messages.success(request, "Étudiant ajouté avec succès.")
 

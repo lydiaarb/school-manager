@@ -7,11 +7,68 @@ from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Q
 
-from ..models import Formation
+from ..models import Formation, FormationImage, FormationObjectif
 from .utils import build_excel_response, admin_required
 
+from django.contrib import admin
+from django.utils.html import format_html
 
 
+class FormationImageInline(admin.TabularInline):
+    model = FormationImage
+    extra = 3
+    fields = ('image', 'caption', 'order', 'preview')
+    readonly_fields = ('preview',)
+ 
+    def preview(self, obj):
+        if obj.image:
+            return format_html(
+                '<img src="{}" style="height:60px;border-radius:8px;object-fit:cover;">',
+                obj.image.url
+            )
+        return "—"
+    preview.short_description = "Aperçu"
+ 
+ 
+class FormationObjectifInline(admin.TabularInline):
+    model = FormationObjectif
+    extra = 4
+    fields = ('texte', 'order')
+    verbose_name = "Objectif"
+    verbose_name_plural = "Objectifs pédagogiques"
+ 
+ 
+# ── Formation Admin ─────────────────────────────────────────
+ 
+@admin.register(Formation)
+class FormationAdmin(admin.ModelAdmin):
+    list_display   = ('title', 'category', 'chef_name', 'price', 'is_published', 'thumbnail')
+    list_filter    = ('is_published', 'category')
+    search_fields  = ('title', 'chef_name', 'category')
+    prepopulated_fields = {'slug': ('title',)}
+    inlines        = [FormationImageInline, FormationObjectifInline]
+ 
+    fieldsets = (
+        ("Informations générales", {
+            'fields': ('title', 'slug', 'category', 'short_description', 'description', 'image')
+        }),
+        ("Encadrement & Durée", {
+            'fields': ('chef_name', 'duration', 'price')
+        }),
+        ("Publication", {
+            'fields': ('is_published',)
+        }),
+    )
+ 
+    def thumbnail(self, obj):
+        if obj.image:
+            return format_html(
+                '<img src="{}" style="height:40px;border-radius:6px;object-fit:cover;">',
+                obj.image.url
+            )
+        return "—"
+    thumbnail.short_description = "Photo"
+ 
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -143,7 +200,7 @@ def _handle_formation_post(request):
         formation.save()
         messages.success(request, "Formation modifiée avec succès.")
     else:
-        Formation.objects.create(
+        formation = Formation.objects.create(
             title=title, short_description=short_description,
             description=description, category=category,
             chef_name=chef_name, duration=duration,
@@ -151,5 +208,58 @@ def _handle_formation_post(request):
             image=request.FILES.get("image"),
         )
         messages.success(request, "Formation ajoutée avec succès.")
+
+    # Save objectives from the form
+    objectif_textes = request.POST.getlist("objectif_texte[]")
+    objectif_orders = request.POST.getlist("objectif_order[]")
+    objectif_ids    = request.POST.getlist("objectif_id[]")
+
+    objectif_rows = []
+    for idx, texte in enumerate(objectif_textes):
+        texte = texte.strip()
+        if not texte:
+            continue
+
+        try:
+            order = int(objectif_orders[idx]) if idx < len(objectif_orders) else idx
+        except (ValueError, TypeError):
+            order = idx
+
+        objectif_rows.append({
+            "id": objectif_ids[idx] if idx < len(objectif_ids) else None,
+            "texte": texte,
+            "order": order,
+        })
+
+    if formation_id:
+        sent_ids = [int(i) for i in objectif_ids if i.isdigit()]
+        if sent_ids:
+            FormationObjectif.objects.filter(formation=formation).exclude(id__in=sent_ids).delete()
+        else:
+            FormationObjectif.objects.filter(formation=formation).delete()
+
+        for row in objectif_rows:
+            if row["id"] and str(row["id"]).isdigit():
+                objectif = FormationObjectif.objects.filter(
+                    id=int(row["id"]), formation=formation
+                ).first()
+                if objectif:
+                    objectif.texte = row["texte"]
+                    objectif.order = row["order"]
+                    objectif.save()
+                    continue
+
+            FormationObjectif.objects.create(
+                formation=formation,
+                texte=row["texte"],
+                order=row["order"],
+            )
+    else:
+        for row in objectif_rows:
+            FormationObjectif.objects.create(
+                formation=formation,
+                texte=row["texte"],
+                order=row["order"],
+            )
 
     return redirect("admin_dashboard:formations")

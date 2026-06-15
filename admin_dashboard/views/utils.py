@@ -18,8 +18,8 @@ import random
 from django.core.mail import send_mail
 from django.conf import settings
 from django.utils import timezone
-from datetime import timedelta
-
+from datetime import datetime,timedelta
+from django.db.models import Q
 from ..models import StudentActivationCode
 
 def generate_temporary_password(length=10):
@@ -225,3 +225,62 @@ def check_session_conflicts(teacher_id, room_id, day, start_time, end_time, excl
     )
 
     return teacher_conflict, room_conflict
+
+def suggest_available_slots(
+    teacher_id,
+    room_id,
+    day,
+    duration_minutes,
+    exclude_id=None,
+    start_hour=8,
+    end_hour=18,
+    step_minutes=30,
+    limit=5,
+):
+    """
+    Retourne des créneaux disponibles sans conflit pour le même formateur et la même salle.
+    Exemple: ["08:00 - 10:00", "10:30 - 12:30"]
+    """
+
+    suggestions = []
+
+    base_date = datetime.today().replace(hour=start_hour, minute=0, second=0, microsecond=0)
+    end_limit = datetime.today().replace(hour=end_hour, minute=0, second=0, microsecond=0)
+
+    current_start = base_date
+
+    while current_start + timedelta(minutes=duration_minutes) <= end_limit:
+        current_end = current_start + timedelta(minutes=duration_minutes)
+
+        start_time = current_start.time()
+        end_time = current_end.time()
+
+        conflict_qs = TimetableSession.objects.filter(
+            is_active=True,
+            day=day,
+            start_time__lt=end_time,
+            end_time__gt=start_time,
+        )
+
+        if exclude_id:
+            conflict_qs = conflict_qs.exclude(id=exclude_id)
+
+        conflict_filter = Q()
+
+        if teacher_id:
+            conflict_filter |= Q(teacher_id=teacher_id)
+
+        if room_id:
+            conflict_filter |= Q(room_id=room_id)
+
+        has_conflict = conflict_qs.filter(conflict_filter).exists() if conflict_filter else False
+
+        if not has_conflict:
+            suggestions.append(f"{start_time.strftime('%H:%M')} - {end_time.strftime('%H:%M')}")
+
+        if len(suggestions) >= limit:
+            break
+
+        current_start += timedelta(minutes=step_minutes)
+
+    return suggestions

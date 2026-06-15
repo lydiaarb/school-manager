@@ -23,11 +23,11 @@
     </div>
 
     <div class="flex items-center gap-3">
+      <a href="{% url 'admin_dashboard:export_timetable_excel' %}?formation={{ request.GET.formation|default:'' }}&teacher={{ request.GET.teacher|default:'' }}&day={{ request.GET.day|default:'' }}"
+         class="inline-flex items-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
+        Exporter Excel
+      </a>
 
-  <a href="{% url 'admin_dashboard:export_timetable_excel' %}?formation={{ request.GET.formation|default:'' }}&teacher={{ request.GET.teacher|default:'' }}&day={{ request.GET.day|default:'' }}"
-     class="inline-flex items-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
-    Exporter Excel
-  </a>
       <button
         type="button"
         onclick="openAddSessionModal()"
@@ -176,6 +176,7 @@
                         data-teacher-conflict="{{ session.teacher_conflict|yesno:'true,false' }}"
                         data-room-conflict="{{ session.room_conflict|yesno:'true,false' }}"
                         data-has-conflict="{{ session.has_conflict|yesno:'true,false' }}"
+                        data-suggestions="{% for suggestion in session.suggestions %}{{ suggestion }}{% if not forloop.last %}||{% endif %}{% endfor %}"
                       >
                         <div class="flex items-start justify-between gap-3">
                           <div>
@@ -219,6 +220,22 @@
                               </span>
                             {% endif %}
                           </div>
+
+                          {% if session.suggestions %}
+                            <div class="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-2">
+                              <p class="mb-2 text-[11px] font-bold text-amber-700">
+                                Créneaux recommandés
+                              </p>
+
+                              <div class="flex flex-wrap gap-1">
+                                {% for suggestion in session.suggestions %}
+                                  <span class="rounded-full bg-white px-2 py-1 text-[10px] font-semibold text-slate-700 shadow-sm">
+                                    {{ suggestion }}
+                                  </span>
+                                {% endfor %}
+                              </div>
+                            </div>
+                          {% endif %}
                         {% endif %}
                       </div>
                     {% endfor %}
@@ -366,6 +383,17 @@
       <p class="mt-3 text-xs text-red-600">
         Cette session chevauche une autre session active pour le même formateur et/ou la même salle.
       </p>
+
+      <div id="session_suggestions_box"
+           class="mt-4 hidden rounded-2xl border border-amber-200 bg-amber-50 p-4">
+        <p class="text-sm font-semibold text-amber-700">
+          Créneaux recommandés
+        </p>
+
+        <div id="session_suggestions_list"
+             class="mt-3 flex flex-wrap gap-2">
+        </div>
+      </div>
     </div>
 
     <div class="mt-6 flex justify-end gap-3">
@@ -723,7 +751,8 @@ function translateDayToFrench(dayValue) {
     wednesday: "Mercredi",
     thursday: "Jeudi",
     friday: "Vendredi",
-    saturday: "Samedi"
+    saturday: "Samedi",
+    sunday: "Dimanche"
   };
   return days[dayValue] || dayValue || "—";
 }
@@ -731,10 +760,15 @@ function translateDayToFrench(dayValue) {
 function renderConflictState() {
   const conflictBox = document.getElementById("session_conflict_box");
   const conflictBadges = document.getElementById("session_conflict_badges");
+  const suggestionsBox = document.getElementById("session_suggestions_box");
+  const suggestionsList = document.getElementById("session_suggestions_list");
 
   if (!conflictBox || !conflictBadges) return;
 
   conflictBadges.innerHTML = "";
+
+  if (suggestionsList) suggestionsList.innerHTML = "";
+  if (suggestionsBox) suggestionsBox.classList.add("hidden");
 
   if (!currentSessionData || !currentSessionData.hasConflict) {
     conflictBox.classList.add("hidden");
@@ -757,10 +791,24 @@ function renderConflictState() {
     `;
   }
 
+  if (currentSessionData.suggestions && currentSessionData.suggestions.length > 0 && suggestionsBox && suggestionsList) {
+    currentSessionData.suggestions.forEach(function (slot) {
+      suggestionsList.innerHTML += `
+        <span class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm">
+          ${slot}
+        </span>
+      `;
+    });
+
+    suggestionsBox.classList.remove("hidden");
+  }
+
   conflictBox.classList.remove("hidden");
 }
 
 function openSessionDetailModal(element) {
+  const rawSuggestions = element.dataset.suggestions || "";
+
   currentSessionData = {
     id: element.dataset.id || "",
     title: element.dataset.title || "",
@@ -777,7 +825,8 @@ function openSessionDetailModal(element) {
     color: element.dataset.color || "slate",
     teacherConflict: element.dataset.teacherConflict === "true",
     roomConflict: element.dataset.roomConflict === "true",
-    hasConflict: element.dataset.hasConflict === "true"
+    hasConflict: element.dataset.hasConflict === "true",
+    suggestions: rawSuggestions ? rawSuggestions.split("||") : []
   };
 
   document.getElementById("session_detail_title").textContent = currentSessionData.title || "—";

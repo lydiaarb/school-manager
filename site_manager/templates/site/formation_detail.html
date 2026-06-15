@@ -3,198 +3,805 @@
 {% block title %}{{ formation.title }}{% endblock %}
 
 {% block content %}
-<section class="mx-auto max-w-6xl px-4 py-10">
-  <!-- Top hero -->
-  <div class="grid gap-10 lg:grid-cols-2 lg:items-start">
-    <div>
-      {% if formation.image %}
-        <img
-          src="{{ formation.image.url }}"
-          alt="{{ formation.title }}"
-          class="h-[420px] w-full rounded-[2rem] object-cover shadow-lg ring-1 ring-slate-200"
-        >
-      {% else %}
-        <div class="flex h-[420px] w-full items-center justify-center rounded-[2rem] bg-slate-100 text-5xl text-slate-400 shadow-sm ring-1 ring-slate-200">
-          🍽️
+
+<style>
+  :root{
+    --primary: #ec4899;
+    --primary-dark: #db2777;
+    --primary-light: #fdf2f8;
+    --primary-soft: #fbcfe8;
+    --primary-ring: rgba(236,72,153,.12);
+  }
+
+  .page-bg {
+    background: linear-gradient(135deg, rgba(252,231,243,0.45) 0%, #ffffff 50%, #ffffff 100%);
+    position: relative;
+    overflow: hidden;
+    min-height: 100vh;
+  }
+
+  .blob1 {
+    position: absolute;
+    right: -7rem;
+    top: -7rem;
+    width: 20rem;
+    height: 20rem;
+    border-radius: 9999px;
+    background: rgba(252,231,243,0.5);
+    filter: blur(60px);
+    pointer-events: none;
+  }
+
+  .blob2 {
+    position: absolute;
+    left: -8rem;
+    top: 5rem;
+    width: 18rem;
+    height: 18rem;
+    border-radius: 9999px;
+    background: rgba(249,168,212,0.25);
+    filter: blur(60px);
+    pointer-events: none;
+  }
+
+  .thumb-btn {
+    border: 2px solid transparent;
+    border-radius: 1rem;
+    background: #fff;
+    padding: 4px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.1);
+    transition: .2s;
+    cursor: pointer;
+  }
+
+  .thumb-btn.active { border-color: var(--primary); }
+  .thumb-btn:hover  { border-color: #f9a8d4; }
+
+  .form-input {
+    height: 3.5rem;
+    width: 100%;
+    border-radius: 1rem;
+    border: 1.5px solid #e2e8f0;
+    background: #fff;
+    padding-left: 3rem;
+    padding-right: 1rem;
+    font-size: .875rem;
+    outline: none;
+    transition: .15s;
+    color: #1e293b;
+  }
+
+  .form-input::placeholder { color: #94a3b8; }
+
+  .form-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px var(--primary-ring);
+  }
+
+  textarea.form-input {
+    height: auto;
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+    resize: none;
+  }
+
+  .submit-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .75rem;
+    height: 3.5rem;
+    width: 100%;
+    border-radius: 1rem;
+    background: var(--primary);
+    color: #fff;
+    font-size: .9rem;
+    font-weight: 800;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 10px 15px -3px rgba(236,72,153,.35);
+    transition: .2s;
+  }
+
+  .submit-btn:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+  }
+
+  .f-card {
+    border-radius: 2rem;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    box-shadow: 0 20px 40px -12px rgba(148,163,184,.15);
+  }
+
+  .info-card {
+    border-radius: 1.5rem;
+    border: 1px solid rgba(226,232,240,.8);
+    background: #fff;
+    padding: 1.25rem;
+    box-shadow: 0 10px 20px -6px rgba(148,163,184,.15);
+  }
+
+  .nav-btn {
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 9999px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary);
+    box-shadow: 0 4px 10px -2px rgba(148,163,184,.3);
+    transition: .15s;
+    flex-shrink: 0;
+  }
+
+  .nav-btn:hover          { background: var(--primary-light); }
+  .nav-btn.left:hover     { transform: translateX(-2px); }
+  .nav-btn.right:hover    { transform: translateX(2px); }
+
+  .obj-check {
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 9999px;
+    background: var(--primary);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .watermark {
+    position: absolute;
+    bottom: -3rem;
+    right: 0;
+    color: var(--primary-soft);
+    pointer-events: none;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    border-radius: 9999px;
+    padding: .4rem 1rem;
+    font-size: .8rem;
+    font-weight: 700;
+  }
+
+  .badge-rose  { background: var(--primary-light); color: var(--primary); }
+  .badge-slate { background: #f1f5f9; color: #334155; }
+  .badge-green { background: #ecfdf5; color: #047857; }
+
+  .cert-block {
+    border-radius: 1.5rem;
+    border: 1px solid #fbcfe8;
+    background: var(--primary-light);
+    padding: 1.25rem;
+  }
+
+  .cert-icon {
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 9999px;
+    background: var(--primary);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 16px -4px rgba(236,72,153,.4);
+    flex-shrink: 0;
+  }
+
+  .f-divider { height: 1px; background: #e2e8f0; margin: 2rem 0; }
+
+  .success-banner {
+    border-radius: 1.5rem;
+    border: 1px solid #d1fae5;
+    background: #fff;
+    padding: 1.5rem;
+    box-shadow: 0 4px 12px -2px rgba(167,243,208,.4);
+    margin-top: 2rem;
+  }
+
+  @media (min-width: 1024px) {
+    .sticky-form { position: sticky; top: 6rem; }
+  }
+
+  .hero-grid    { display: grid; gap: 2.5rem; }
+  .content-grid { display: grid; gap: 2rem; margin-top: 3rem; }
+  .page-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem;
+    position: relative;
+  }
+
+  .hero-card {
+    border-radius: 2rem;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: 0 20px 40px -12px rgba(148,163,184,.2);
+    border: 1px solid rgba(226,232,240,.7);
+  }
+
+  .hero-image,
+  .hero-image-fallback {
+    width: 100%;
+    display: block;
+  }
+
+  .hero-image {
+    height: auto;
+    max-height: 560px;
+    object-fit: cover;
+  }
+
+  .hero-image-fallback {
+    min-height: 280px;
+    background: #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+  }
+
+  .short-desc {
+    max-width: 520px;
+  }
+
+  .objective-list {
+    margin-top: 1.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    list-style: none;
+    padding: 0;
+    width: 100%;
+  }
+
+  .objective-item {
+    display: flex;
+    align-items: flex-start;
+    gap: .75rem;
+    font-size: .9rem;
+    font-weight: 500;
+    color: #475569;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .info-card,
+  .cert-block,
+  .hero-card,
+  .f-card,
+  .sticky-form {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .info-grid    { display: grid; gap: 1.25rem; }
+  .price-grid   { display: grid; gap: 1rem; margin-top: 2rem; }
+
+  @media (min-width: 768px) {
+    .info-grid  { grid-template-columns: 1fr 1fr; }
+    .price-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  @media (min-width: 1024px) {
+    .hero-grid    { grid-template-columns: 1fr 1.15fr; align-items: start; }
+    .content-grid { grid-template-columns: 1fr 0.58fr; align-items: start; }
+  }
+
+  .thumbs-row {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    margin-top: 1rem;
+  }
+
+  @media (max-width: 1023px) {
+    .sticky-form {
+      position: static;
+      width: 100%;
+      max-width: 100%;
+    }
+
+    .hero-grid,
+    .content-grid,
+    .price-grid,
+    .info-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .page-container {
+      padding: 2rem 1rem;
+    }
+
+    .hero-grid {
+      gap: 2rem;
+    }
+
+    .hero-card {
+      border-radius: 1.5rem;
+    }
+
+    .hero-image,
+    .hero-image-fallback {
+      max-height: none;
+      min-height: 240px;
+    }
+
+    .thumbs-row {
+      flex-wrap: wrap;
+      justify-content: space-between;
+    }
+
+    .thumbs-scroll {
+      width: 100%;
+      padding: 0;
+    }
+
+    .price-grid,
+    .info-grid,
+    .content-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .content-grid {
+      gap: 1.5rem;
+    }
+
+    .form-body {
+      padding: 1rem;
+    }
+
+    .form-header {
+      padding: 1.5rem;
+    }
+
+    .form-input {
+      padding-left: 3rem;
+      min-width: 0;
+    }
+
+    .short-desc {
+      max-width: 100%;
+    }
+
+    .objective-item {
+      flex-direction: row;
+      align-items: flex-start;
+      gap: .75rem;
+      min-width: 0;
+      word-break: break-word;
+    }
+
+    .form-input,
+    .submit-btn,
+    .thumb-btn {
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .page-bg {
+      min-height: auto;
+    }
+  }
+
+  .thumbs-scroll {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    overflow-x: auto;
+    flex: 1;
+    padding: 0 4px;
+  }
+
+  .thumbs-scroll::-webkit-scrollbar { display: none; }
+
+  .form-header {
+    border-radius: 2rem 2rem 0 0;
+    background: var(--primary);
+    padding: 1.75rem;
+    color: #fff;
+  }
+
+  .form-body {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .form-icon-wrap {
+    width: 4rem;
+    height: 4rem;
+    border-radius: 1rem;
+    background: rgba(255,255,255,.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .icon-wrap-rose {
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 1rem;
+    background: var(--primary-light);
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .icon-wrap-circle {
+    width: 4rem;
+    height: 4rem;
+    border-radius: 9999px;
+    background: var(--primary-light);
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+</style>
+
+<div class="page-bg">
+  <div class="blob1"></div>
+  <div class="blob2"></div>
+
+  <div class="page-container">
+
+    <!-- ===== HERO ===== -->
+    <div class="hero-grid">
+
+      <!-- LEFT: Image + Thumbnails -->
+      <div>
+        <div class="hero-card">
+          {% if formation.image %}
+            <img id="formationMainImage" src="{{ formation.image.url }}" alt="{{ formation.title }}" class="hero-image">
+          {% else %}
+            <div class="hero-image-fallback">
+              <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 3v7"/><path d="M7 3v7"/><path d="M4 7h3"/><path d="M5.5 10v11"/>
+                <path d="M18 3c-2 2-3 4.2-3 7v2h4v9"/>
+              </svg>
+            </div>
+          {% endif %}
         </div>
-      {% endif %}
-    </div>
 
-    <div class="lg:pt-4">
-      <div class="flex flex-wrap gap-2">
-        {% if formation.category %}
-          <span class="rounded-full bg-pink-100 px-4 py-1.5 text-sm font-semibold text-pink-700">
-            {{ formation.category }}
-          </span>
-        {% endif %}
+        <!-- Thumbnails -->
+        <div class="thumbs-row">
+          <button type="button" class="nav-btn left" onclick="slideThumb(-1)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+          </button>
 
-        {% if formation.duration %}
-          <span class="rounded-full bg-slate-100 px-4 py-1.5 text-sm font-semibold text-slate-700">
-            {{ formation.duration }}
-          </span>
-        {% endif %}
+          <div class="thumbs-scroll" id="thumbsRow">
+            {% if formation.image %}
+              <button type="button" class="thumb-btn active formation-thumb"
+                data-img="{{ formation.image.url }}"
+                onclick="changeFormationImage(this)">
+                <img src="{{ formation.image.url }}" alt="{{ formation.title }}"
+                  style="width:96px;height:64px;border-radius:.75rem;object-fit:cover;display:block;">
+              </button>
+            {% endif %}
 
-        {% if formation.is_published %}
-          <span class="rounded-full bg-emerald-100 px-4 py-1.5 text-sm font-semibold text-emerald-700">
-            Disponible
-          </span>
-        {% endif %}
+            {% for img in gallery %}
+              <button type="button" class="thumb-btn formation-thumb"
+                data-img="{{ img.image.url }}"
+                onclick="changeFormationImage(this)">
+                <img src="{{ img.image.url }}" alt="{{ img.caption|default:formation.title }}"
+                  style="width:96px;height:64px;border-radius:.75rem;object-fit:cover;display:block;">
+              </button>
+            {% endfor %}
+          </div>
+
+          <button type="button" class="nav-btn right" onclick="slideThumb(1)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        </div>
       </div>
 
-      <h1 class="mt-5 text-4xl font-extrabold leading-tight text-slate-900 sm:text-5xl">
-        {{ formation.title }}
-      </h1>
+      <!-- RIGHT: Details -->
+      <div style="padding-top:.5rem;">
 
-      {% if formation.short_description %}
-        <p class="mt-5 max-w-2xl text-lg leading-8 text-slate-600">
-          {{ formation.short_description }}
-        </p>
-      {% endif %}
+        <!-- Badges -->
+        <div style="display:flex;flex-wrap:wrap;gap:.75rem;align-items:center;">
+          {% if formation.category %}
+            <span class="badge badge-rose">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M7 21h10"/><path d="M8 21v-3h8v3"/><path d="M6.8 15.5c-2-.6-3.3-2.1-3.3-4a4 4 0 0 1 5.6-3.7A4.5 4.5 0 0 1 17.5 8a4 4 0 0 1 1 7.7"/><path d="M7 18c0-2.5.8-4 5-4s5 1.5 5 4"/></svg>
+              {{ formation.category }}
+            </span>
+          {% endif %}
+          {% if formation.duration %}
+            <span class="badge badge-slate">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+              {{ formation.duration }}
+            </span>
+          {% endif %}
+          {% if formation.is_published %}
+            <span class="badge badge-green">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.7-9.7a1 1 0 0 0-1.4-1.4L9 10.2 7.7 8.9a1 1 0 0 0-1.4 1.4l2 2a1 1 0 0 0 1.4 0l4-4Z" clip-rule="evenodd"/></svg>
+              Disponible
+            </span>
+          {% endif %}
+        </div>
 
-      <div class="mt-8 grid gap-4 sm:grid-cols-2">
-        {% if formation.price %}
-          <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p class="text-sm font-medium text-slate-500">Prix</p>
-            <p class="mt-2 text-2xl font-bold text-slate-900">{{ formation.price }} DH</p>
-          </div>
-        {% endif %}
+        <!-- Title -->
+        <h1 style="margin-top:1.75rem;font-size:clamp(2rem,4vw,3.5rem);font-weight:900;line-height:1.15;color:#020617;letter-spacing:-.03em;">
+          {{ formation.title }}
+        </h1>
 
-        {% if formation.chef_name %}
-          <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p class="text-sm font-medium text-slate-500">Encadrement</p>
-            <p class="mt-2 text-lg font-bold text-slate-900">{{ formation.chef_name }}</p>
-          </div>
-        {% endif %}
-      </div>
-    </div>
-  </div>
-
-  <!-- Main content -->
-  <div class="mt-14 grid gap-10 lg:grid-cols-3">
-    <!-- Left content -->
-    <div class="space-y-8 lg:col-span-2">
-      <div class="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm">
-        <h2 class="text-2xl font-bold text-slate-900">À propos de cette formation</h2>
-
-        {% if formation.description %}
-          <div class="mt-5 space-y-4 text-base leading-8 text-slate-600">
-            {{ formation.description|linebreaks }}
-          </div>
-        {% else %}
-          <p class="mt-5 text-base leading-8 text-slate-500">
-            Les détails complets de cette formation seront bientôt disponibles.
+        <!-- Short description -->
+        {% if formation.short_description %}
+          <p class="short-desc" style="margin-top:1.25rem;font-size:1.05rem;line-height:1.7;color:#475569;">
+            {{ formation.short_description }}
           </p>
         {% endif %}
-      </div>
 
-      <div class="grid gap-6 sm:grid-cols-2">
-        <div class="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-          <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-pink-100 text-xl">
-            ⏱️
-          </div>
-          <h3 class="text-lg font-bold text-slate-900">Durée</h3>
-          <p class="mt-2 text-sm leading-7 text-slate-600">
-            {{ formation.duration|default:"À définir" }}
-          </p>
+        <!-- Price + Chef -->
+        <div class="price-grid">
+          {% if formation.price %}
+            <div class="info-card">
+              <div style="display:flex;align-items:center;gap:1rem;">
+                <div class="icon-wrap-rose">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20"/></svg>
+                </div>
+                <div>
+                  <p style="font-size:.8rem;font-weight:700;color:#0f172a;">Prix</p>
+                  <p style="margin-top:.15rem;font-size:1.4rem;font-weight:900;color:#ec4899;">{{ formation.price }} DZD</p>
+                </div>
+              </div>
+            </div>
+          {% endif %}
+
+          {% if formation.chef_name %}
+            <div class="info-card">
+              <div style="display:flex;align-items:center;gap:1rem;">
+                <div class="icon-wrap-rose">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7 21h10"/><path d="M8 21v-3h8v3"/><path d="M6.8 15.5c-2-.6-3.3-2.1-3.3-4a4 4 0 0 1 5.6-3.7A4.5 4.5 0 0 1 17.5 8a4 4 0 0 1 1 7.7"/><path d="M7 18c0-2.5.8-4 5-4s5 1.5 5 4"/></svg>
+                </div>
+                <div>
+                  <p style="font-size:.8rem;font-weight:700;color:#0f172a;">Encadrement</p>
+                  <p style="margin-top:.15rem;font-size:1.2rem;font-weight:900;color:#020617;">{{ formation.chef_name }}</p>
+                  <p style="font-size:.8rem;color:#64748b;">Chef Pâtissier</p>
+                </div>
+              </div>
+            </div>
+          {% endif %}
         </div>
 
-        <div class="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-          <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-pink-100 text-xl">
-            👨‍🍳
+        <!-- Certification -->
+        <div class="cert-block" style="margin-top:2rem;">
+          <div style="display:flex;align-items:center;gap:1rem;">
+            <div class="cert-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 5 5v6c0 4.55 2.91 8.67 7 10 4.09-1.33 7-5.45 7-10V5l-7-3Zm3.7 7.7-4.4 4.4a1 1 0 0 1-1.4 0l-1.9-1.9a1 1 0 1 1 1.4-1.4l1.2 1.2 3.7-3.7a1 1 0 0 1 1.4 1.4Z"/></svg>
+            </div>
+            <div>
+              <h3 style="font-weight:900;color:#0f172a;font-size:.95rem;">Formation certifiante</h3>
+              <p style="margin-top:.25rem;font-size:.85rem;line-height:1.6;color:#475569;">Attestation de formation incluse à la fin du parcours</p>
+            </div>
           </div>
-          <h3 class="text-lg font-bold text-slate-900">Encadrement</h3>
-          <p class="mt-2 text-sm leading-7 text-slate-600">
-            {{ formation.chef_name|default:"Équipe pédagogique" }}
-          </p>
         </div>
+
       </div>
     </div>
 
-    <!-- Right sticky form -->
-    <div>
-      <div class="sticky top-24 rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm">
-        <h2 class="text-2xl font-bold text-slate-900">Demande d'inscription</h2>
-        <p class="mt-2 text-sm leading-6 text-slate-500">
-          Remplissez ce formulaire pour envoyer votre demande. Notre équipe vous contactera après validation.
-        </p>
+    <!-- ===== CONTENT + FORM ===== -->
+    <div class="content-grid">
 
-        {% if success %}
-          <div class="mt-6 rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
-            <div class="flex items-start gap-3">
-              <div class="mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
-                ✓
+      <!-- LEFT: Content card -->
+      <div class="f-card" style="padding:2rem;">
+
+        <!-- About -->
+        <div>
+          <div style="display:flex;align-items:center;gap:1rem;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ec4899" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.5A8 8 0 0 0 4 5v14a8 8 0 0 1 8 1.5"/><path d="M12 6.5A8 8 0 0 1 20 5v14a8 8 0 0 0-8 1.5"/><path d="M12 6.5v14"/></svg>
+            <h2 style="font-size:1.4rem;font-weight:900;color:#020617;">À propos de cette formation</h2>
+          </div>
+          <div style="margin-top:1.5rem;font-size:.95rem;line-height:1.8;color:#475569;">
+            {% if formation.description %}
+              {{ formation.description|linebreaks }}
+            {% else %}
+              <p>Cette formation complète vous permettra d'acquérir toutes les compétences nécessaires pour maîtriser l'art de la pâtisserie, des bases fondamentales aux techniques les plus avancées. Encadré par des professionnels passionnés, vous développerez votre créativité et votre savoir-faire.</p>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="f-divider"></div>
+
+        <!-- Info Cards -->
+        <div class="info-grid">
+          <div style="border-radius:1.5rem;background:rgba(255,241,242,.7);padding:1.5rem;">
+            <div style="display:flex;gap:1.25rem;">
+              <div class="icon-wrap-circle">
+                <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
               </div>
               <div>
-                <h3 class="font-bold text-emerald-800">Demande envoyée avec succès</h3>
-                <p class="mt-1 text-sm leading-6 text-emerald-700">
-                  Votre demande a bien été enregistrée. Nous vous contacterons bientôt.
-                </p>
+                <h3 style="font-weight:900;color:#020617;font-size:.9rem;">Durée</h3>
+                <div style="margin-top:.6rem;width:2.5rem;height:4px;border-radius:9999px;background:#ec4899;"></div>
+                <p style="margin-top:1rem;font-size:1.3rem;font-weight:900;color:#020617;">{{ formation.duration|default:"À définir" }}</p>
+                <p style="margin-top:.2rem;font-size:.8rem;line-height:1.6;color:#475569;">{{ formation.duration|default:"À définir" }} heures de formation<br>Pratique et théorie</p>
               </div>
             </div>
           </div>
-        {% else %}
-          <form method="POST" class="mt-6 space-y-4">
-            {% csrf_token %}
 
-            <div>
-              <label class="mb-2 block text-sm font-medium text-slate-700">Prénom</label>
-              <input
-                type="text"
-                name="first_name"
-                required
-                class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-pink-400 focus:ring-4 focus:ring-pink-100"
-              >
+          <div style="border-radius:1.5rem;background:rgba(255,241,242,.7);padding:1.5rem;">
+            <div style="display:flex;gap:1.25rem;">
+              <div class="icon-wrap-circle">
+                <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              </div>
+              <div>
+                <h3 style="font-weight:900;color:#020617;font-size:.9rem;">Encadrement</h3>
+                <div style="margin-top:.6rem;width:2.5rem;height:4px;border-radius:9999px;background:#ec4899;"></div>
+                <p style="margin-top:1rem;font-size:1.3rem;font-weight:900;color:#020617;">{{ formation.chef_name|default:"Équipe pédagogique" }}</p>
+                <p style="margin-top:.2rem;font-size:.8rem;line-height:1.6;color:#475569;">Chef pâtissier professionnel<br>+ Équipe pédagogique</p>
+              </div>
             </div>
+          </div>
+        </div>
 
-            <div>
-              <label class="mb-2 block text-sm font-medium text-slate-700">Nom</label>
-              <input
-                type="text"
-                name="last_name"
-                required
-                class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-pink-400 focus:ring-4 focus:ring-pink-100"
-              >
+        <div class="f-divider"></div>
+
+        <!-- Objectives -->
+        <div style="position:relative;overflow:hidden;">
+          <div style="display:flex;align-items:center;gap:1rem;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#f43f5e" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 2v4"/><path d="M12 18v4"/><path d="M2 12h4"/><path d="M18 12h4"/></svg>
+            <h2 style="font-size:1.4rem;font-weight:900;color:#020617;">Objectifs de la formation</h2>
+          </div>
+
+          <ul class="objective-list">
+            {% if objectifs %}
+              {% for obj in objectifs %}
+                <li class="objective-item">
+                  <span class="obj-check">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                  </span>
+                  <span style="display:block;min-width:0;">{{ obj.texte }}</span>
+                </li>
+              {% endfor %}
+            {% else %}
+              <li class="objective-item">
+                <span class="obj-check"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+                <span style="display:block;min-width:0;">Maîtriser les techniques de base de la pâtisserie</span>
+              </li>
+              <li class="objective-item">
+                <span class="obj-check"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+                <span style="display:block;min-width:0;">Réaliser une large gamme de desserts et entremets</span>
+              </li>
+              <li class="objective-item">
+                <span class="obj-check"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+                <span style="display:block;min-width:0;">Développer votre créativité et votre signature</span>
+              </li>
+              <li class="objective-item">
+                <span class="obj-check"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+                <span style="display:block;min-width:0;">Respecter les règles d'hygiène et de sécurité alimentaire</span>
+              </li>
+            {% endif %}
+          </ul>
+
+        
+        </div>
+      </div>
+
+      <!-- RIGHT: Sticky Form -->
+      <div class="sticky-form" style="border-radius:2rem;border:1px solid #e2e8f0;background:#fff;box-shadow:0 20px 40px -12px rgba(148,163,184,.15);overflow:hidden;">
+        <div class="form-header">
+          <div style="display:flex;align-items:center;gap:1rem;">
+            <div class="form-icon-wrap">
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5h6"/><path d="M9 9h6"/><path d="M9 13h3"/><path d="M6 3h12v18H6z"/></svg>
             </div>
-
             <div>
-              <label class="mb-2 block text-sm font-medium text-slate-700">Téléphone</label>
-              <input
-                type="text"
-                name="phone"
-                required
-                class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-pink-400 focus:ring-4 focus:ring-pink-100"
-              >
+              <h2 style="font-size:1.4rem;font-weight:900;margin:0;">Demande d'inscription</h2>
+              <p style="margin-top:.25rem;font-size:.8rem;line-height:1.6;color:rgba(255,255,255,.88);margin-bottom:0;">
+                Remplissez ce formulaire pour envoyer votre demande d'inscription.
+              </p>
             </div>
+          </div>
+        </div>
 
-            <div>
-              <label class="mb-2 block text-sm font-medium text-slate-700">Email</label>
-              <input
-                type="email"
-                name="email"
-                class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-pink-400 focus:ring-4 focus:ring-pink-100"
-              >
-            </div>
+      <form method="POST" class="form-body">
+  {% csrf_token %}
 
-            <div>
-              <label class="mb-2 block text-sm font-medium text-slate-700">Message</label>
-              <textarea
-                name="message"
-                rows="4"
-                class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-pink-400 focus:ring-4 focus:ring-pink-100"
-                placeholder="Parlez-nous un peu de votre motivation..."
-              ></textarea>
-            </div>
+  {% if error %}
+    <div class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
+      {{ error }}
+    </div>
+  {% endif %}
 
-            <button
-              type="submit"
-              class="w-full rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
-            >
-              Envoyer ma demande
-            </button>
-          </form>
-        {% endif %}
+  {% if messages %}
+    {% for message in messages %}
+      <div class="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-600">
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <!-- Prénom -->
+  <div style="position:relative;">
+    <i class="fas fa-user" style="position:absolute;left:1rem;top:50%;transform:translateY(-50%);color:#94a3b8;"></i>
+    <input type="text" name="first_name" required value="{{ request.POST.first_name }}" class="form-input" placeholder="Prénom">
+  </div>
+
+  <!-- Nom -->
+  <div style="position:relative;">
+    <i class="fas fa-user" style="position:absolute;left:1rem;top:50%;transform:translateY(-50%);color:#94a3b8;"></i>
+    <input type="text" name="last_name" required value="{{ request.POST.last_name }}" class="form-input" placeholder="Nom">
+  </div>
+
+  <!-- Téléphone -->
+  <div style="position:relative;">
+    <i class="fas fa-phone" style="position:absolute;left:1rem;top:50%;transform:translateY(-50%);color:#94a3b8;"></i>
+    <input
+      type="tel"
+      name="phone"
+      required
+      value="{{ request.POST.phone }}"
+      class="form-input"
+      placeholder="Téléphone"
+      inputmode="numeric"
+      pattern="[0-9]{8,15}"
+      title="Veuillez entrer uniquement des chiffres, entre 8 et 15 chiffres."
+      oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+    >
+  </div>
+
+  <!-- Email (non obligatoire) -->
+  <div style="position:relative;">
+    <i class="fas fa-envelope" style="position:absolute;left:1rem;top:50%;transform:translateY(-50%);color:#94a3b8;"></i>
+    <input type="email" name="email" value="{{ request.POST.email }}" class="form-input" placeholder="Email (optionnel)">
+  </div>
+
+  <!-- Message -->
+  <div style="position:relative;">
+    <i class="fas fa-comment" style="position:absolute;left:1rem;top:1.1rem;color:#94a3b8;"></i>
+    <textarea name="message" rows="5" class="form-input" style="padding-left:3rem;padding-top:1rem;" placeholder="Message (optionnel)">{{ request.POST.message }}</textarea>
+  </div>
+
+  <button type="submit" class="submit-btn">
+    Envoyer ma demande
+  </button>
+
+  <p style="display:flex;align-items:center;justify-content:center;gap:.5rem;font-size:.8rem;color:#64748b;text-align:center;padding-top:.25rem;">
+    <i class="fas fa-lock" style="color:#94a3b8;"></i>
+    Vos informations sont sécurisées et ne seront jamais partagées.
+  </p>
+</form>
       </div>
     </div>
+
+
   </div>
-</section>
+</div>
+
+<script>
+  function changeFormationImage(button) {
+    const mainImage = document.getElementById("formationMainImage");
+    if (!mainImage) return;
+    const imageUrl = button.getAttribute("data-img");
+    if (!imageUrl) return;
+    mainImage.src = imageUrl;
+    document.querySelectorAll(".formation-thumb").forEach((thumb) => {
+      thumb.classList.remove("active");
+    });
+    button.classList.add("active");
+  }
+
+  function slideThumb(dir) {
+    const row = document.getElementById("thumbsRow");
+    if (row) row.scrollBy({ left: dir * 120, behavior: "smooth" });
+  }
+</script>
+
 {% endblock %}

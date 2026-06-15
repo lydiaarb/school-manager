@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login as auth_login
 from django.contrib.auth.models import User
 from django.contrib import messages
-
+from admin_dashboard.views.utils import create_and_send_student_activation_code
 from admin_dashboard.models import (
     Formation,
     RegistrationRequest,
@@ -11,7 +11,64 @@ from admin_dashboard.models import (
     Student,
     StudentActivationCode,
 )
-from admin_dashboard.views.utils import create_and_send_student_activation_code
+from django.core.paginator import Paginator
+from django.db.models import Q
+
+def formations_list(request):
+    formations = Formation.objects.filter(is_published=True).order_by("-id")
+
+    search = request.GET.get("search", "").strip()
+    category = request.GET.get("category", "").strip()
+    min_price = request.GET.get("min_price", "").strip()
+    max_price = request.GET.get("max_price", "").strip()
+    duration = request.GET.get("duration", "").strip()
+
+    if search:
+        formations = formations.filter(
+            Q(title__icontains=search) |
+            Q(short_description__icontains=search) |
+            Q(description__icontains=search)
+        )
+
+    if category:
+        formations = formations.filter(category__iexact=category)
+
+    if min_price:
+        formations = formations.filter(price__gte=min_price)
+
+    if max_price:
+        formations = formations.filter(price__lte=max_price)
+
+    if duration:
+        formations = formations.filter(duration__icontains=duration)
+
+    categories = (
+        Formation.objects
+        .filter(is_published=True)
+        .exclude(category__isnull=True)
+        .exclude(category="")
+        .values_list("category", flat=True)
+        .distinct()
+    )
+
+    paginator = Paginator(formations, 9)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        "page_obj": page_obj,
+        "categories": categories,
+        "search": search,
+        "category": category,
+        "min_price": min_price,
+        "max_price": max_price,
+        "duration": duration,
+    }
+
+    return render(request, "site/formations_list.html", context)
+
+
+ 
 
 def resend_student_code(request):
     if request.method != "POST":
@@ -132,7 +189,7 @@ def login(request):
 
 
 def home(request):
-    formations = Formation.objects.filter(is_published=True)
+    formations = Formation.objects.filter(is_published=True)[:6]
     return render(request, "site/home.html", {
         "formations": formations
     })
@@ -217,8 +274,14 @@ def signup(request):
     return redirect("site_manager:login")
 
 
+
 def formation_detail(request, slug):
     formation = get_object_or_404(Formation, slug=slug, is_published=True)
+
+    gallery = list(formation.images.all())
+    objectifs = formation.objectifs.all()
+
+    error = ""
 
     if request.method == "POST":
         first_name = request.POST.get("first_name", "").strip()
@@ -227,30 +290,43 @@ def formation_detail(request, slug):
         email = request.POST.get("email", "").strip()
         message = request.POST.get("message", "").strip()
 
-        registration = RegistrationRequest.objects.create(
-            first_name=first_name,
-            last_name=last_name,
-            phone=phone,
-            email=email,
-            formation=formation,
-            message=message,
-            status="pending",
-        )
+        if not first_name or not last_name or not phone:
+            error = "Veuillez remplir tous les champs obligatoires."
 
-        Notification.objects.create(
-            title="Nouvelle demande d'inscription",
-            message=f"{registration.first_name} {registration.last_name} a demandé une inscription à la formation {formation.title}.",
-            type="student",
-            priority="medium",
-            is_read=False,
-            related_object=f"{registration.first_name} {registration.last_name}"
-        )
+        elif not phone.isdigit():
+            error = "Le numéro de téléphone doit contenir uniquement des chiffres."
 
-        return render(request, "site/formation_detail.html", {
-            "formation": formation,
-            "success": True,
-        })
+        elif len(phone) < 8 or len(phone) > 15:
+            error = "Le numéro de téléphone doit contenir entre 8 et 15 chiffres."
 
-    return render(request, "site/formation_detail.html", {
+        else:
+            RegistrationRequest.objects.create(
+                formation=formation,
+                first_name=first_name,
+                last_name=last_name,
+                phone=phone,
+                email=email,
+                message=message,
+                status="pending",
+            )
+
+            Notification.objects.create(
+                title="Nouvelle demande d'inscription",
+                message=f"{first_name} {last_name} a demandé une inscription à la formation {formation.title}.",
+                type="student",
+                priority="medium",
+                is_read=False,
+                related_object=f"{first_name} {last_name}",
+            )
+
+            messages.success(request, "Votre demande d’inscription a été envoyée avec succès.")
+            return redirect("site_manager:formation_detail", slug=formation.slug)
+
+    context = {
         "formation": formation,
-    })
+        "gallery": gallery,
+        "objectifs": objectifs,
+        "error": error,
+    }
+
+    return render(request, "site/formation_detail.html", context)
